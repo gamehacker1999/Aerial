@@ -4,7 +4,7 @@
 #include "SimpleShader.h"
 #include <DirectXMath.h>
 #include"Mesh.h"
-#include"Entity.h"
+#include"Ship.h"
 #include<vector>
 #include"Camera.h"
 #include"Lights.h"
@@ -70,6 +70,7 @@ private:
 	ID3D11SamplerState* samplerState;
 
 	//creating a list of vectors
+	std::shared_ptr<Ship> ship;
 	std::vector<std::shared_ptr<Entity>> entities;
 
 	//list of lights

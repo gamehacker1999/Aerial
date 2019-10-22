@@ -19,6 +19,10 @@ Camera::Camera(XMFLOAT3 position, XMFLOAT3 direction, XMFLOAT3 up)
 
 }
 
+Camera::~Camera()
+{
+}
+
 XMFLOAT4X4 Camera::GetViewMatrix()
 {
 	//returning view matrix
@@ -44,19 +48,33 @@ void Camera::CreateProjectionMatrix(float aspectRatio)
 
 }
 
+void Camera::SetPositionTargetAndUp(XMFLOAT3 position, XMFLOAT3 direction, XMFLOAT3 up)
+{
+	xRotation = 0.0f;
+	yRotation = 0.0f;
+
+	//storing the position, direction, and up
+	this->direction = direction;
+	this->position = position;
+	this->up = up;
+
+	//calculating the view matrix of the camera
+	auto tempView = XMMatrixLookToLH(XMLoadFloat3(&this->position),
+		XMLoadFloat3(&this->direction), XMLoadFloat3(&this->up));
+
+	//storing this value in view matrix
+	XMStoreFloat4x4(&viewMatrix, tempView);
+}
+
 void Camera::ManageKeyboard(float deltaTime)
 {
-	//move forward
-	if (GetAsyncKeyState('W') & 0x8000)
-	{
-		XMVECTOR tempPosition = XMLoadFloat3(&position) + XMLoadFloat3(&direction) * deltaTime;//moving the camera forward
-		XMStoreFloat3(&position, tempPosition);// storing the position	
-	}
+	XMVECTOR tempPosition = XMLoadFloat3(&position) + XMLoadFloat3(&direction) * deltaTime*2;//moving the camera forward
+	XMStoreFloat3(&position, tempPosition);// storing the position	
 
 	//move back
-	if (GetAsyncKeyState('S') & 0x8000)
+	/*if (GetAsyncKeyState('S') & 0x8000)
 	{
-		XMVECTOR tempPosition = XMLoadFloat3(&position) - XMLoadFloat3(&direction) * deltaTime;//moving the camera forward
+		XMVECTOR tempPosition = XMLoadFloat3(&position) - XMLoadFloat3(&direction) * deltaTime*10;//moving the camera forward
 		XMStoreFloat3(&position, tempPosition);// storing the position	
 	}
 
@@ -96,14 +114,14 @@ void Camera::ManageKeyboard(float deltaTime)
 		XMStoreFloat3(&up, XMVector3Cross(XMLoadFloat3(&direction), right));
 		XMVECTOR tempPosition = XMLoadFloat3(&position) + XMLoadFloat3(&worldUp) * deltaTime;//moving the camera forward
 		XMStoreFloat3(&position, tempPosition);// storing the position
-	}
+	}*/
 }
 
 void Camera::ChangeYawAndPitch(float deltaX, float deltaY)
 {
 	//changing the x and y rotation values
-	xRotation += deltaX*0.05f;
-	yRotation += deltaY*0.05f;
+	//xRotation += deltaX*0.05f;
+	//yRotation += deltaY*0.05f;
 
 	if (yRotation > 85.0f)
 		yRotation = 85.0f;
@@ -115,6 +133,11 @@ void Camera::ChangeYawAndPitch(float deltaX, float deltaY)
 XMFLOAT3 Camera::GetPosition()
 {
 	return position;
+}
+
+XMFLOAT3 Camera::GetDirection()
+{
+	return direction;
 }
 
 void Camera::Update(float deltaTime)

@@ -148,7 +148,7 @@ void Game::Init()
 	CreateBasicGeometry();
 
 	//initalizing camera
-	camera = std::make_shared<Camera>(XMFLOAT3(0.0f, 0.0f, -5.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
+	camera = std::make_shared<Camera>(XMFLOAT3(0.0f, 3.5f, -18.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
 
 	camera->CreateProjectionMatrix((float)width / height); //creating the camera projection matrix
 
@@ -330,41 +330,21 @@ void Game::CreateBasicGeometry()
 	std::shared_ptr<Material> goldMaterial = std::make_shared<Material>(vertexShader, pbrPixelShader, samplerState,
 		goldTextureSRV, goldNormalTextureSRV, goldRoughnessTextureSRV, goldMetalnessTextureSRV);
 
-	std::shared_ptr<Mesh> ship = std::make_shared<Mesh>("../../Assets/Models/ship.obj",device);
+	std::shared_ptr<Mesh> shipMesh = std::make_shared<Mesh>("../../Assets/Models/ship.obj",device);
 	std::shared_ptr<Mesh> object = std::make_shared<Mesh>("../../Assets/Models/cube.obj", device);
 	std::shared_ptr<Mesh> sphere = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
 	//std::shared_ptr<Mesh> object = std::make_shared<Mesh>("../../Assets/Models/helix.obj", device);
 
-	entities.emplace_back(std::make_shared<Entity>(ship, material));
-	entities.emplace_back(std::make_shared<Entity>(object, goldMaterial));
-	entities.emplace_back(std::make_shared<Entity>(sphere, goldMaterial));
-
-
-	auto position = entities[1]->GetPosition();
-	entities[1]->SetScale(XMFLOAT3(0, 0, 0));
-	position.x -= 0.f;
-	position.z += 1.f;
-	position.y -= 7.f;
-	entities[1]->SetPosition(position);
-
-	entities[0]->SetScale(XMFLOAT3(0.5f, 0.5f, 0.5f));
-	auto q1 = entities[0]->GetRotation();
-
-	auto q2 = XMQuaternionRotationAxis(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), 3.14159f);
-
-	auto tempFinalRot =  XMQuaternionMultiply(XMLoadFloat4(&q1), q2);
-
-	XMStoreFloat4(&q1, tempFinalRot);
-
-	//entities[0]->SetRotation(q1);
-
-	auto spherePos = entities[2]->GetPosition();
-	spherePos.x -= 2;
-	entities[2]->SetPosition(spherePos);
+	ship = std::make_shared<Ship>(shipMesh, material);
+	ship->SetTag("Player");
+	entities.emplace_back(ship);
 	
-	//entities[0]->SetScale(XMFLOAT3(10.f, 10.f, 10.f));
-
-	//entities[2]->SetPosition(XMFLOAT3(-2.f, 1.f, 0.f));
+	auto shipOrientation = XMQuaternionRotationAxis(XMVectorSet(0, 1, 0, 0), 3.14159f);
+	XMFLOAT4 retShipRotation;
+	XMStoreFloat4(&retShipRotation, shipOrientation);
+	entities[0]->SetRotation(retShipRotation);
+	ship->SetOriginalRotation(retShipRotation);
+	
 
 	ID3D11SamplerState* samplerStateCube;
 	//sampler state description
@@ -765,6 +745,19 @@ void Game::Update(float deltaTime, float totalTime)
 
 	//updating the camera
 	camera->Update(deltaTime);
+
+	for (int i = 0; i < entities.size(); i++)
+	{
+		entities[i]->Update(deltaTime);
+	}
+
+	for (int i = 0; i < entities.size(); i++)
+	{
+		if (entities[i]->GetAliveState() == false)
+			entities[i] = nullptr;
+	}
+
+	entities.erase(std::remove(entities.begin(), entities.end(), nullptr), entities.end());
 
 	lights[1].position.x = (float)sin(deltaTime)*10;
 }
