@@ -5,12 +5,15 @@
 #include <DirectXMath.h>
 #include"Mesh.h"
 #include"Ship.h"
+#include "Bullet.h"
 #include<vector>
 #include"Camera.h"
 #include"Lights.h"
 #include"Skybox.h"
 #include"Textures.h"
 #include"Terrain.h"
+
+#define MAX_BULLETS 3
 class Game 
 	: public DXCore
 {
@@ -71,6 +74,7 @@ private:
 
 	//creating a list of vectors
 	std::shared_ptr<Ship> ship;
+	std::vector<std::shared_ptr<Bullet>> bullets;
 	std::vector<std::shared_ptr<Entity>> entities;
 
 	//list of lights
@@ -131,5 +135,8 @@ private:
 
 	//creating blend states
 	ID3D11BlendState* blendState;
+
+	//I'm being dumb shhhhhh
+	bool fired = false;
 };
 

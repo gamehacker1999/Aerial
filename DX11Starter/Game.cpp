@@ -338,6 +338,13 @@ void Game::CreateBasicGeometry()
 	ship = std::make_shared<Ship>(shipMesh, material);
 	ship->SetTag("Player");
 	entities.emplace_back(ship);
+
+	//generate the bullets
+	for (size_t i = 0; i < MAX_BULLETS; i++)
+	{
+		std::shared_ptr<Bullet> newBullet = std::make_shared<Bullet>(sphere, material);
+		bullets.emplace_back(newBullet);
+	}
 	
 	auto shipOrientation = XMQuaternionRotationAxis(XMVectorSet(0, 1, 0, 0), 3.14159f);
 	XMFLOAT4 retShipRotation;
@@ -746,9 +753,32 @@ void Game::Update(float deltaTime, float totalTime)
 	//updating the camera
 	camera->Update(deltaTime);
 
+ 	if (GetAsyncKeyState(VK_SPACE) & 0x8000 && fired == false)
+	{
+		fired = true;
+		for (size_t i = 0; i < MAX_BULLETS; i++)
+		{
+			if (!bullets[i]->isActive)
+			{
+				entities.emplace_back(bullets[i]);
+				bullets[i]->SetPosition(ship->GetPosition());
+				break;
+			}
+		}
+	}
+
+	if (GetAsyncKeyState(VK_SPACE) == 0 && fired == true)
+	{
+		fired = false;
+	}
+
 	for (int i = 0; i < entities.size(); i++)
 	{
 		entities[i]->Update(deltaTime);
+		if (entities[i]->GetTag() == "bullet" && entities[i]->GetAliveState() == false)
+		{
+			entities.erase(entities.begin() + i);
+		}
 	}
 
 	for (int i = 0; i < entities.size(); i++)
