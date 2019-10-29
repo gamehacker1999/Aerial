@@ -104,12 +104,15 @@ private:
 	//view and projection matrices for the irradiance map
 	std::vector<XMFLOAT4X4> cubemapViews;
 	XMFLOAT4X4 cubemapProj;
+	ID3D11RasterizerState* skyRS;
 	//textures, depth stencil, srv, and render target for irradiance map
 	ID3D11Texture2D* irradianceMapTexture;
 	ID3D11DepthStencilView* irradienceDepthStencil;
 	ID3D11ShaderResourceView* irradienceSRV;
 	ID3D11RenderTargetView* irradienceRTV[6];
 	D3D11_VIEWPORT irradianceViewport;
+
+	ID3D11RasterizerState* backCullRS;
 
 	//texture, srv, and rtv for the prefiltered cubemap
 	ID3D11Texture2D* prefileteredMapTexture;

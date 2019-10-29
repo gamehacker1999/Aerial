@@ -13,11 +13,14 @@ Ship::~Ship()
 
 void Ship::Update(float deltaTime)
 {
+	//moving the ship forward
 	position.z += 2 * deltaTime;
 	SetPosition(position);
 
+	//getting the mouse input
 	GetInput(deltaTime);
 
+	//slerping between current and original pos
 	auto curRot = XMLoadFloat4(&rotation);
 	auto originalRot = XMLoadFloat4(&originalRotation);
 	auto springRot = XMQuaternionSlerp(curRot, originalRot, 2.0f * deltaTime);
@@ -29,7 +32,7 @@ void Ship::Update(float deltaTime)
 void Ship::GetInput(float deltaTime)
 {
 
-
+	//move up
 	if (GetAsyncKeyState('W') & 0x8000)
 	{
 		XMVECTOR newRotationTemp = XMQuaternionRotationAxis(XMVectorSet(1, 0, 0, 0), 3.14159f / 6 * deltaTime);
@@ -44,7 +47,7 @@ void Ship::GetInput(float deltaTime)
 		SetRotation(curRot);
 	}
 
-	//move left
+	//move down
 	if (GetAsyncKeyState('S') & 0x8000)
 	{
 		XMVECTOR newRotationTemp = XMQuaternionRotationAxis(XMVectorSet(1, 0, 0, 0), -3.14159f / 6 * deltaTime);
@@ -59,6 +62,7 @@ void Ship::GetInput(float deltaTime)
 		SetRotation(curRot);
 	}
 
+	//move right
 	if (GetAsyncKeyState('D') & 0x8000)
 	{
 		XMVECTOR newRotationTemp = XMQuaternionRotationAxis(XMVectorSet(0, 0, 1, 0), 3.14159f / 6 * deltaTime);
@@ -91,6 +95,7 @@ void Ship::GetInput(float deltaTime)
 
 bool Ship::IsColliding(std::shared_ptr<Entity> other)
 {
+	//checking if it collided with the obstacle
 	if (other->GetTag() == "Obstacle"&&useRigidBody
 		&& GetRigidBody()->SATCollision(other->GetRigidBody()))
 	{

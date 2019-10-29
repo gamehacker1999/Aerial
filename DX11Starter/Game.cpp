@@ -368,8 +368,12 @@ void Game::CreateBasicGeometry()
 
 	skybox = std::make_shared<Skybox>();
 	//creating skybox
-	skybox->LoadSkybox(L"../../Assets/Textures/skybox1.dds", device, context,samplerStateCube);
+	skybox->LoadSkybox(L"../../Assets/Textures/SunnyCubeMap.dds", device, context,samplerStateCube);
 
+	D3D11_RASTERIZER_DESC skyRSDesc = {};
+	skyRSDesc.FillMode = D3D11_FILL_SOLID;
+	skyRSDesc.CullMode = D3D11_CULL_FRONT;
+	device->CreateRasterizerState(&skyRSDesc, &skyRS);
 }
 
 void Game::CreateIrradianceMaps()
@@ -914,7 +918,6 @@ void Game::Draw(float deltaTime, float totalTime)
 		entities[i]->GetMaterial()->GetPixelShader()->SetShaderResourceView("shadowMap", nullptr);
 	}
 
-	context->OMSetDepthStencilState(dssLessEqual, 0);
 
 	//drawing the terrain
 	/*vertexShader->SetMatrix4x4("world", terrain->GetWorldMatrix());
@@ -932,10 +935,11 @@ void Game::Draw(float deltaTime, float totalTime)
 	context->IASetIndexBuffer(terrain->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 	context->DrawIndexed(511 * 511 * 2*3, 0, 0);*/
 
+	context->OMSetDepthStencilState(dssLessEqual, 0);
+
 	//draw the skybox
+	context->RSSetState(skyRS);
 	skybox->PrepareSkybox(camera->GetViewMatrix(), camera->GetProjectionMatrix(), camera->GetPosition());
-	//skybox->GetPixelShader()->SetShaderResourceView("skyboxTexture", irradienceSRV);
-	//skybox->GetPixelShader()->CopyAllBufferData();
 	auto tempVertexBuffer = skybox->GetVertexBuffer();
 	context->IASetVertexBuffers(0, 1, &tempVertexBuffer, &stride, &offset);
 	context->IASetIndexBuffer(skybox->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
