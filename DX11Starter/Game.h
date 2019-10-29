@@ -140,7 +140,8 @@ private:
 	//creating blend states
 	ID3D11BlendState* blendState;
 
-	//I'm being dumb shhhhhh
+	//if bullet has been fired
+	int bulletCounter;
 	bool fired = false;
 
 	//I'm just copying code from the unity prototype lol

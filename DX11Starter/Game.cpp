@@ -49,6 +49,10 @@ Game::Game(HINSTANCE hInstance)
 
 	blendState = nullptr;
 
+	backCullRS = nullptr;
+
+	skyRS = nullptr;
+
 	prevMousePos = { 0,0 };	
 
 #if defined(DEBUG) || defined(_DEBUG)
@@ -128,6 +132,12 @@ Game::~Game()
 
 	if (blendState)
 		blendState->Release();
+
+	if (backCullRS)
+		backCullRS->Release();
+
+	if (skyRS)
+		skyRS->Release();
 
 	//releasing depth stencil
 	dssLessEqual->Release();
@@ -214,6 +224,8 @@ void Game::Init()
 	CreatePrefilteredMaps();
 
 	CreateEnvironmentLUTs();
+
+	bulletCounter = 0;
 
 }
 
@@ -334,9 +346,10 @@ void Game::CreateBasicGeometry()
 
 	std::shared_ptr<Mesh> shipMesh = std::make_shared<Mesh>("../../Assets/Models/ship.obj",device);
 	std::shared_ptr<Mesh> object = std::make_shared<Mesh>("../../Assets/Models/cube.obj", device);
+	sphere = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
 
 	//will be used for obstacles too
-	sphere = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
+	//sphere = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
 	//std::shared_ptr<Mesh> object = std::make_shared<Mesh>("../../Assets/Models/helix.obj", device);
 
 	ship = std::make_shared<Ship>(shipMesh, material);
@@ -780,6 +793,7 @@ void Game::Update(float deltaTime, float totalTime)
 		// set position
 		newObstacle->SetPosition(position);
 		newObstacle->SetScale({ 3, 3, 3 });
+		newObstacle->UseRigidBody();
 
 		obstacles.emplace_back(newObstacle);
 		entities.emplace_back(newObstacle);
@@ -790,14 +804,13 @@ void Game::Update(float deltaTime, float totalTime)
  	if (GetAsyncKeyState(VK_SPACE) & 0x8000 && fired == false)
 	{
 		fired = true;
-		for (size_t i = 0; i < MAX_BULLETS; i++)
+		if (bulletCounter<=MAX_BULLETS)
 		{
-			if (!bullets[i]->isActive)
-			{
-				entities.emplace_back(bullets[i]);
-				bullets[i]->SetPosition(ship->GetPosition());
-				break;
-			}
+			bulletCounter++;
+			std::shared_ptr<Bullet> newBullet = std::make_shared<Bullet>(sphere, material);
+			newBullet->UseRigidBody();
+			newBullet->SetPosition(ship->GetPosition());
+			entities.emplace_back(newBullet);
 		}
 	}
 
@@ -809,10 +822,6 @@ void Game::Update(float deltaTime, float totalTime)
 	for (int i = 0; i < entities.size(); i++)
 	{
 		entities[i]->Update(deltaTime);
-		if (entities[i]->GetTag() == "bullet" && entities[i]->GetAliveState() == false)
-		{
-			entities.erase(entities.begin() + i);
-		}
 	}
 
 	//checking for collision
@@ -827,7 +836,13 @@ void Game::Update(float deltaTime, float totalTime)
 	for (int i = 0; i < entities.size(); i++)
 	{
 		if (entities[i]->GetAliveState() == false)
+		{
+			if (entities[i]->GetTag() == "bullet") 
+			{
+				bulletCounter--;
+			}
 			entities[i] = nullptr;
+		}
 	}
 
 	entities.erase(std::remove(entities.begin(), entities.end(), nullptr), entities.end());

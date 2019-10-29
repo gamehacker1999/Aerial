@@ -68,7 +68,7 @@ void Camera::SetPositionTargetAndUp(XMFLOAT3 position, XMFLOAT3 direction, XMFLO
 
 void Camera::ManageKeyboard(float deltaTime)
 {
-	XMVECTOR tempPosition = XMLoadFloat3(&position) + XMLoadFloat3(&direction) * deltaTime*2;//moving the camera forward
+	XMVECTOR tempPosition = XMLoadFloat3(&position) + XMLoadFloat3(&direction) * deltaTime*6;//moving the camera forward
 	XMStoreFloat3(&position, tempPosition);// storing the position	
 
 	//move back

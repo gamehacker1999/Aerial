@@ -8,3 +8,12 @@ Obstacle::Obstacle(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> materia
 Obstacle::~Obstacle()
 {
 }
+
+bool Obstacle::IsColliding(std::shared_ptr<Entity> other)
+{
+	return false;
+}
+
+void Obstacle::Update(float deltaTime)
+{
+}

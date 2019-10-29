@@ -18,6 +18,7 @@ bool Bullet::IsColliding(std::shared_ptr<Entity> other)
 	{
 		this->isAlive = false;
 		other->Die();
+		return true;
 	}
 
 	return false;
@@ -41,4 +42,5 @@ void Bullet::Reset()
 	lifeTime = 0;
 	position.z = 0;
 	isActive = false;
+	isAlive = false;
 }

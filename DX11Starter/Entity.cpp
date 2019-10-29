@@ -60,19 +60,25 @@ void Entity::SetRigidBody(std::shared_ptr<RigidBody> body)
 {
 	this->body = body;
 	useRigidBody = true;
-	this->body->SetModelMatrix(modelMatrix);
+	XMFLOAT4X4 transpose;
+	XMStoreFloat4x4(&transpose, XMMatrixTranspose(XMLoadFloat4x4(&GetModelMatrix())));
+	this->body->SetModelMatrix(transpose);
 }
 
 std::shared_ptr<RigidBody> Entity::GetRigidBody()
 {
-	body->SetModelMatrix(GetModelMatrix());
+	XMFLOAT4X4 transpose;
+	XMStoreFloat4x4(&transpose, XMMatrixTranspose(XMLoadFloat4x4(&GetModelMatrix())));
+	body->SetModelMatrix(transpose);
 	return body;
 }
 
 void Entity::UseRigidBody()
 {
 	body = std::make_shared<RigidBody>(mesh->GetPoints());
-	body->SetModelMatrix(modelMatrix);
+	XMFLOAT4X4 transpose;
+	XMStoreFloat4x4(&transpose, XMMatrixTranspose(XMLoadFloat4x4(&GetModelMatrix())));
+	body->SetModelMatrix(transpose);
 	useRigidBody = true;
 }
 

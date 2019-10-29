@@ -69,8 +69,12 @@ void RigidBody::SetModelMatrix(XMFLOAT4X4 modelMatrix)
 	for (size_t uIndex = 0; uIndex < 8; ++uIndex)
 	{
 		//v3Corner[uIndex] = XMFLOAT3(m_m4ToWorld * vector4(v3Corner[uIndex], 1.0f));
-		XMStoreFloat3(&v3Corner[uIndex],
-			XMVector3Transform(XMVectorSet(v3Corner[uIndex].x, v3Corner[uIndex].y, v3Corner[uIndex].z, 1.0f),XMLoadFloat4x4(&modelMatrix)));
+		XMFLOAT4 vecF = XMFLOAT4(v3Corner[uIndex].x, v3Corner[uIndex].y, v3Corner[uIndex].z, 1.0f);
+		XMVECTOR vec = XMLoadFloat4(&vecF);
+		XMFLOAT3 finalVec;
+		vec = XMVector4Transform(vec,XMLoadFloat4x4(&modelMatrix));
+
+		XMStoreFloat3(&v3Corner[uIndex], vec);
 	}
 
 	//Identify the max and min as the first corner
@@ -160,7 +164,7 @@ bool RigidBody::SATCollision(std::shared_ptr<RigidBody> other)
 	{
 		//OBBPoints[i] = XMFLOAT3(GetModelMatrix() * vector4(OBBPoints[i], 1.0f));
 		XMStoreFloat3(&OBBPoints[i],
-			XMVector3Transform(XMVectorSet(OBBPoints[i].x, OBBPoints[i].y, OBBPoints[i].z, 1.0f), XMLoadFloat4x4(&modelMatrix)));
+			XMVector4Transform(XMVectorSet(OBBPoints[i].x, OBBPoints[i].y, OBBPoints[i].z, 1.0f), XMLoadFloat4x4(&modelMatrix)));
 	}
 
 	//corners of the second rigid body
@@ -198,7 +202,7 @@ bool RigidBody::SATCollision(std::shared_ptr<RigidBody> other)
 	for (size_t i = 0; i < OtherOBBPoints.size(); i++)
 	{
 		XMStoreFloat3(&OtherOBBPoints[i],
-			XMVector3Transform(XMVectorSet(OtherOBBPoints[i].x, OtherOBBPoints[i].y, OtherOBBPoints[i].z, 1.0f), XMLoadFloat4x4(&modelMatrix)));
+			XMVector4Transform(XMVectorSet(OtherOBBPoints[i].x, OtherOBBPoints[i].y, OtherOBBPoints[i].z, 1.0f), XMLoadFloat4x4(&other->GetModelMatrix())));
 	}
 
 	//list to hold the axis of seperation
@@ -207,36 +211,40 @@ bool RigidBody::SATCollision(std::shared_ptr<RigidBody> other)
 	//normal of x axis of this body
 	XMFLOAT3 A0;
 	XMStoreFloat3(&A0,
-		XMVector3Transform(XMVectorSet(1.f,0,0,0),XMLoadFloat4x4(&modelMatrix)));
+		XMVector4Transform(XMVectorSet(1.f,0,0,0),XMLoadFloat4x4(&modelMatrix)));
 	normalList.emplace_back(A0);
 	//normal of y axis of this body
 	XMFLOAT3 A1;
 	XMStoreFloat3(&A1,
-		XMVector3Transform(XMVectorSet(0.f, 1.0f, 0, 0), XMLoadFloat4x4(&modelMatrix)));
+		XMVector4Transform(XMVectorSet(0.f, 1.0f, 0, 0), XMLoadFloat4x4(&modelMatrix)));
 	normalList.emplace_back(A1);
 	//normal of the z axis of this body
 	XMFLOAT3 A2;
 	XMStoreFloat3(&A2,
-		XMVector3Transform(XMVectorSet(0.f, 0, 1.0f, 0), XMLoadFloat4x4(&modelMatrix)));
+		XMVector4Transform(XMVectorSet(0.f, 0, 1.0f, 0), XMLoadFloat4x4(&modelMatrix)));
 	normalList.emplace_back(A2);
 
 	//normal of x axis of other body
 	XMFLOAT3 B0;
 	XMStoreFloat3(&B0,
-		XMVector3Transform(XMVectorSet(1.f, 0, 0.0f, 0), XMLoadFloat4x4(&modelMatrix)));
+		XMVector4Transform(XMVectorSet(1.f, 0, 0.0f, 0), XMLoadFloat4x4(&other->GetModelMatrix())));
 	normalList.emplace_back(B0);
 	//normal of y axis of other body
 	XMFLOAT3 B1;
 	XMStoreFloat3(&B1,
-		XMVector3Transform(XMVectorSet(0.f, 1.f, 0.0f, 0), XMLoadFloat4x4(&modelMatrix)));
+		XMVector4Transform(XMVectorSet(0.f, 1.f, 0.0f, 0), XMLoadFloat4x4(&other->GetModelMatrix())));
 	normalList.emplace_back(B1);
 	//normal of the z axis of other body
 	XMFLOAT3 B2;
 	XMStoreFloat3(&B2,
-		XMVector3Transform(XMVectorSet(0.f, 0, 1.0f, 0), XMLoadFloat4x4(&modelMatrix)));
+		XMVector4Transform(XMVectorSet(0.f, 0, 1.0f, 0), XMLoadFloat4x4(&other->GetModelMatrix())));
 	normalList.emplace_back(B2);
 
-
+	for (size_t i = 0; i < normalList.size(); i++)
+	{
+		XMStoreFloat3(&normalList[i], XMVector3Normalize(XMLoadFloat3(&normalList[i])));
+	}
+	
 	//9 cross product axes
 	//the logic of these axes is as follows
 	//for each normal axis in this rigid body, find a cross product of that axis
@@ -272,14 +280,19 @@ bool RigidBody::SATCollision(std::shared_ptr<RigidBody> other)
 	normalList.emplace_back(A2CrossB0);
 
 	XMFLOAT3 A2CrossB1;// = glm::cross(A2, B1);
-	XMStoreFloat3(&A0CrossB0, XMVector3Cross(XMLoadFloat3(&A2), XMLoadFloat3(&B1)));
+	XMStoreFloat3(&A2CrossB1, XMVector3Cross(XMLoadFloat3(&A2), XMLoadFloat3(&B1)));
 	normalList.emplace_back(A2CrossB1);
 
 	XMFLOAT3 A2CrossB2;// = glm::cross(A2, B2);
-	XMStoreFloat3(&A0CrossB0, XMVector3Cross(XMLoadFloat3(&A2), XMLoadFloat3(&B2)));
+	XMStoreFloat3(&A2CrossB2, XMVector3Cross(XMLoadFloat3(&A2), XMLoadFloat3(&B2)));
 	normalList.emplace_back(A2CrossB2);
 
-	int result = 0;
+	bool result = true;
+
+	for (size_t i = 0; i < normalList.size(); i++)
+	{
+		XMStoreFloat3(&normalList[i], XMVector3Normalize(XMLoadFloat3(&normalList[i])));
+	}
 
 	//looping through the normals and checking if there is overlap on any of the normal
 	for (int i = 1; i < normalList.size() + 1; i++)
@@ -288,7 +301,7 @@ bool RigidBody::SATCollision(std::shared_ptr<RigidBody> other)
 		if (IsOverlapping(normalList[(size_t)i - 1], OBBPoints, OtherOBBPoints) == false)
 		{
 			//result is set to a value not equal to 0;
-			result = i;
+			result = false;
 			break;
 		}
 	}
@@ -310,12 +323,15 @@ bool RigidBody::IsOverlapping(XMFLOAT3 axis,std::vector<XMFLOAT3> thisPoints,std
 	//vector to hold the dot products of the this rigid body's points to the given axis
 	std::vector<float> dots1;
 
+	XMFLOAT4 length;
+	XMStoreFloat4(&length, XMVector3Length(XMLoadFloat3(&axis)));
+
 	//adding the dot products to a vector
 	for (int i = 0; i < thisPoints.size(); i++)
 	{
 		XMFLOAT3 dot;
 		XMStoreFloat3(&dot, XMVector3Dot(XMLoadFloat3(&axis), XMLoadFloat3(&thisPoints[i])));
-		dots1.emplace_back(dot.x);
+		dots1.emplace_back(dot.x/length.x);
 	}
 
 	//vector to hold the dot products of the other rigid body's points to the given axis
@@ -326,7 +342,7 @@ bool RigidBody::IsOverlapping(XMFLOAT3 axis,std::vector<XMFLOAT3> thisPoints,std
 	{
 		XMFLOAT3 dot;
 		XMStoreFloat3(&dot, XMVector3Dot(XMLoadFloat3(&axis), XMLoadFloat3(&otherPoints[i])));
-		dots2.emplace_back(dot.x);
+		dots2.emplace_back(dot.x/length.x);
 	}
 
 	//holding the min and max from the first set of dot products

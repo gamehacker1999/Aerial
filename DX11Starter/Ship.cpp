@@ -14,7 +14,7 @@ Ship::~Ship()
 void Ship::Update(float deltaTime)
 {
 	//moving the ship forward
-	position.z += 2 * deltaTime;
+	position.z += 6 * deltaTime;
 	SetPosition(position);
 
 	//getting the mouse input
@@ -100,7 +100,9 @@ bool Ship::IsColliding(std::shared_ptr<Entity> other)
 		&& GetRigidBody()->SATCollision(other->GetRigidBody()))
 	{
 		health -= 1;
+		other->Die();
 		return true;
+
 	}
 
 	return false;
