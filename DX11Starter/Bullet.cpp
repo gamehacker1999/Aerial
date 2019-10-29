@@ -14,7 +14,7 @@ Bullet::~Bullet()
 bool Bullet::IsColliding(std::shared_ptr<Entity> other)
 {
 	if (other->GetTag() == "Obstacle"&&useRigidBody
-		&&body->SATCollision(other->GetRigidBody()))
+		&& GetRigidBody()->SATCollision(other->GetRigidBody()))
 	{
 		this->isAlive = false;
 		other->Die();
