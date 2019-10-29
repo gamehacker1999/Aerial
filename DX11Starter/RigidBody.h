@@ -27,7 +27,10 @@ public:
 	XMFLOAT3 GetMinGlobal();
 	XMFLOAT3 GetMaxGlobal();
 	XMFLOAT4X4 GetModelMatrix();
-
+	XMFLOAT3 GetCenterLocal();
+	XMFLOAT3 GetCenterGlobal();
+	float GetRadius();
+	bool BoundingSphereCheck(std::shared_ptr<RigidBody> other);
 
 	//collision detection
 	bool SATCollision(std::shared_ptr<RigidBody> other);

@@ -42,7 +42,6 @@ RigidBody::RigidBody(std::vector<XMFLOAT3> points)
 	XMVECTOR vector2 = XMLoadFloat3(&minL);
 	XMVECTOR vectorSub = XMVectorSubtract(vector1, vector2);
 	XMVECTOR length = XMVector3Length(vectorSub);
-
 	XMStoreFloat(&radius, length);
 }
 
@@ -71,7 +70,6 @@ void RigidBody::SetModelMatrix(XMFLOAT4X4 modelMatrix)
 		//v3Corner[uIndex] = XMFLOAT3(m_m4ToWorld * vector4(v3Corner[uIndex], 1.0f));
 		XMFLOAT4 vecF = XMFLOAT4(v3Corner[uIndex].x, v3Corner[uIndex].y, v3Corner[uIndex].z, 1.0f);
 		XMVECTOR vec = XMLoadFloat4(&vecF);
-		XMFLOAT3 finalVec;
 		vec = XMVector4Transform(vec,XMLoadFloat4x4(&modelMatrix));
 
 		XMStoreFloat3(&v3Corner[uIndex], vec);
@@ -123,10 +121,51 @@ XMFLOAT4X4 RigidBody::GetModelMatrix()
 	return modelMatrix;
 }
 
+XMFLOAT3 RigidBody::GetCenterLocal()
+{
+	return center;
+}
+
+XMFLOAT3 RigidBody::GetCenterGlobal()
+{
+	XMFLOAT3 globalCenter;
+
+	XMStoreFloat3(&globalCenter, XMVector4Transform(XMVectorSet(center.x, center.y, center.z, 1.0f), XMLoadFloat4x4(&modelMatrix)));
+	return globalCenter;
+}
+
+float RigidBody::GetRadius()
+{
+	return radius;
+}
+
+bool RigidBody::BoundingSphereCheck(std::shared_ptr<RigidBody> other)
+{
+	XMVECTOR vector1 = XMLoadFloat3(&GetCenterGlobal());
+	XMVECTOR vector2 = XMLoadFloat3(&other->GetCenterGlobal());
+	XMVECTOR vectorSub = XMVectorSubtract(vector1, vector2);
+	XMVECTOR length = XMVector3Length(vectorSub);
+	XMFLOAT3 dist;
+	XMStoreFloat3(&dist, length);
+
+	if (dist.x < this->GetRadius() + other->GetRadius())
+	{
+		return true;
+	}
+
+	return false;
+
+}
+
 bool RigidBody::SATCollision(std::shared_ptr<RigidBody> other)
 {
 	
 	if (this == other.get())
+	{
+		return false;
+	}
+
+	if (!BoundingSphereCheck(other))
 	{
 		return false;
 	}

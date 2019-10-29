@@ -809,7 +809,9 @@ void Game::Update(float deltaTime, float totalTime)
 			bulletCounter++;
 			std::shared_ptr<Bullet> newBullet = std::make_shared<Bullet>(sphere, material);
 			newBullet->UseRigidBody();
-			newBullet->SetPosition(ship->GetPosition());
+			XMFLOAT3 bulletPos = ship->GetPosition();
+			bulletPos.y += 0.5f;
+			newBullet->SetPosition(bulletPos);
 			entities.emplace_back(newBullet);
 		}
 	}
