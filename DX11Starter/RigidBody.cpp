@@ -3,7 +3,7 @@
 RigidBody::RigidBody(std::vector<XMFLOAT3> points)
 {
 	//Count the points of the incoming list
-	unsigned int uVertexCount = points.size();
+	size_t uVertexCount = points.size();
 
 	XMStoreFloat4x4(&modelMatrix, XMMatrixIdentity());
 
@@ -119,8 +119,14 @@ XMFLOAT4X4 RigidBody::GetModelMatrix()
 	return modelMatrix;
 }
 
-bool RigidBody::SATCollision(RigidBody* other)
+bool RigidBody::SATCollision(std::shared_ptr<RigidBody> other)
 {
+	
+	if (this == other.get())
+	{
+		return false;
+	}
+	
 	//corners of the first rigid body
 	std::vector<XMFLOAT3> OBBPoints;
 
@@ -276,10 +282,10 @@ bool RigidBody::SATCollision(RigidBody* other)
 	int result = 0;
 
 	//looping through the normals and checking if there is overlap on any of the normal
-	for (size_t i = 1; i < normalList.size() + 1; i++)
+	for (int i = 1; i < normalList.size() + 1; i++)
 	{
 		//if there is no overlap on even one axis, it means that there is no collision
-		if (IsOverlapping(normalList[i - 1], OBBPoints, OtherOBBPoints) == false)
+		if (IsOverlapping(normalList[(size_t)i - 1], OBBPoints, OtherOBBPoints) == false)
 		{
 			//result is set to a value not equal to 0;
 			result = i;

@@ -1,2 +1,11 @@
-﻿  Game.cpp
-  DX11Starter.vcxproj -> D:\Andrew\Documents\College HW\540\Aerial\DX11Starter\x64\Debug\DX11Starter.exe
+﻿  Bullet.cpp
+  Entity.cpp
+  FollowCamera.cpp
+  Game.cpp
+  Main.cpp
+  Mesh.cpp
+  Ship.cpp
+  Skybox.cpp
+  Terrain.cpp
+  Generating Code...
+  DX11Starter.vcxproj -> C:\Users\Shubham Sachdeva\source\repos\Aerial\DX11Starter\x64\Debug\DX11Starter.exe

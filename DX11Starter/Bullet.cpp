@@ -11,6 +11,18 @@ Bullet::~Bullet()
 {
 }
 
+bool Bullet::IsColliding(std::shared_ptr<Entity> other)
+{
+	if (other->GetTag() == "Obstacle"&&useRigidBody
+		&& GetRigidBody()->SATCollision(other->GetRigidBody()))
+	{
+		this->isAlive = false;
+		other->Die();
+	}
+
+	return false;
+}
+
 void Bullet::Update(float deltaTime)
 {
 	isActive = true;

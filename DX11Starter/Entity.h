@@ -31,6 +31,7 @@ protected:
 	bool isAlive;
 
 	std::shared_ptr<RigidBody> body;
+	bool useRigidBody;
 
 public:
 	//constructor which accepts a mesh
@@ -43,6 +44,9 @@ public:
 	void SetOriginalRotation(XMFLOAT4 rotation);
 	void SetScale(XMFLOAT3 scale);
 	void SetModelMatrix(XMFLOAT4X4 matrix);
+	void SetRigidBody(std::shared_ptr<RigidBody> body);
+	std::shared_ptr<RigidBody> GetRigidBody();
+	void UseRigidBody();
 
 	XMFLOAT3 GetPosition();
 	XMFLOAT3 GetForward();
@@ -70,6 +74,6 @@ public:
 	virtual void Update(float deltaTime);
 	virtual void GetInput(float deltaTime);
 
-	virtual bool IsColliding(Entity* other);
+	virtual bool IsColliding(std::shared_ptr<Entity> other);
 };
 
