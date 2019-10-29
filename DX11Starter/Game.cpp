@@ -324,7 +324,9 @@ void Game::CreateBasicGeometry()
 	device->CreateSamplerState(&samplerDesc, &samplerState); //creating the sampler state
 	
 	//creating a material for these entities
-	std::shared_ptr<Material> material = std::make_shared<Material>(vertexShader, pbrPixelShader,samplerState,
+
+	//also used for obstacles
+	material = std::make_shared<Material>(vertexShader, pbrPixelShader,samplerState,
 		textureSRV, normalTextureSRV,roughnessTextureSRV,metalnessTextureSRV);
 
 	std::shared_ptr<Material> goldMaterial = std::make_shared<Material>(vertexShader, pbrPixelShader, samplerState,
@@ -332,7 +334,9 @@ void Game::CreateBasicGeometry()
 
 	std::shared_ptr<Mesh> shipMesh = std::make_shared<Mesh>("../../Assets/Models/ship.obj",device);
 	std::shared_ptr<Mesh> object = std::make_shared<Mesh>("../../Assets/Models/cube.obj", device);
-	std::shared_ptr<Mesh> sphere = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
+
+	//will be used for obstacles too
+	sphere = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
 	//std::shared_ptr<Mesh> object = std::make_shared<Mesh>("../../Assets/Models/helix.obj", device);
 
 	ship = std::make_shared<Ship>(shipMesh, material);
@@ -753,6 +757,30 @@ void Game::Update(float deltaTime, float totalTime)
 	//updating the camera
 	camera->Update(deltaTime);
 
+	// add obstacles to screen
+	frameCounter += deltaTime;
+
+	if (frameCounter > 3)
+	{
+		XMFLOAT3 position = {
+			(float)(rand() % 41 - 20),
+			0.0f, // edit this to change y-range
+			ship->GetPosition().z + 30.0f
+		};
+
+		std::shared_ptr<Obstacle> newObstacle = std::make_shared<Obstacle>(sphere, material);
+
+
+		// set position
+		newObstacle->SetPosition(position);
+		newObstacle->SetScale({ 3, 3, 3 });
+
+		obstacles.emplace_back(newObstacle);
+		entities.emplace_back(newObstacle);
+		frameCounter = 0.0f;
+	}
+
+	// handle bullet creation
  	if (GetAsyncKeyState(VK_SPACE) & 0x8000 && fired == false)
 	{
 		fired = true;
