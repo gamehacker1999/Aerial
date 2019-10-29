@@ -2,6 +2,7 @@
 #include<DirectXMath.h>
 #include<vector>
 #include<algorithm>
+#include<memory>
 using namespace DirectX;
 class RigidBody
 {
@@ -29,7 +30,7 @@ public:
 
 
 	//collision detection
-	bool SATCollision(RigidBody* other);
+	bool SATCollision(std::shared_ptr<RigidBody> other);
 	bool IsOverlapping(XMFLOAT3 normal,std::vector<XMFLOAT3> thisPoints, std::vector<XMFLOAT3> otherPoints);
 };
 

@@ -21,6 +21,8 @@ Entity::Entity(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> material)
 	tag = "default";
 
 	isAlive = true;
+
+	useRigidBody = false;
 }
 
 Entity::~Entity()
@@ -52,6 +54,26 @@ void Entity::SetScale(XMFLOAT3 scale)
 void Entity::SetModelMatrix(XMFLOAT4X4 matrix)
 {
 	this->modelMatrix = matrix;
+}
+
+void Entity::SetRigidBody(std::shared_ptr<RigidBody> body)
+{
+	this->body = body;
+	useRigidBody = true;
+	this->body->SetModelMatrix(modelMatrix);
+}
+
+std::shared_ptr<RigidBody> Entity::GetRigidBody()
+{
+	body->SetModelMatrix(GetModelMatrix());
+	return body;
+}
+
+void Entity::UseRigidBody()
+{
+	body = std::make_shared<RigidBody>(mesh->GetPoints());
+	body->SetModelMatrix(modelMatrix);
+	useRigidBody = true;
 }
 
 XMFLOAT3 Entity::GetPosition()
@@ -167,7 +189,7 @@ void Entity::GetInput(float deltaTime)
 {
 }
 
-bool Entity::IsColliding(Entity* other)
+bool Entity::IsColliding(std::shared_ptr<Entity> other)
 {
 	return false;
 }

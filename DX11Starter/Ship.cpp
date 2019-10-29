@@ -89,11 +89,12 @@ void Ship::GetInput(float deltaTime)
 	}
 }
 
-bool Ship::IsColliding(Entity* other)
+bool Ship::IsColliding(std::shared_ptr<Entity> other)
 {
-	if (other->GetTag() == "Obstacle")
+	if (other->GetTag() == "Obstacle"&&useRigidBody
+		&& body->SATCollision(other->GetRigidBody()))
 	{
-		health += 1;
+		health -= 1;
 		return true;
 	}
 

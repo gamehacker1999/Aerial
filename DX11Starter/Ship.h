@@ -17,7 +17,7 @@ public:
 
 	void GetInput(float deltaTime) override;
 
-	bool IsColliding(Entity* other) override;
+	bool IsColliding(std::shared_ptr<Entity> other) override;
 
 	void SetOriginalRotation(XMFLOAT4 originalRotation);
 

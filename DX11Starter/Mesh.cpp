@@ -126,6 +126,11 @@ unsigned int Mesh::GetIndexCount()
 	return numIndices;
 }
 
+std::vector<XMFLOAT3> Mesh::GetPoints()
+{
+	return points;
+}
+
 void Mesh::LoadOBJ(ID3D11Device* device,std::string& fileName)
 {
 	std::ifstream ifile(fileName.c_str());
@@ -289,12 +294,13 @@ void Mesh::LoadOBJ(ID3D11Device* device,std::string& fileName)
 				}
 			}
 
+
 		}
 
 		CalculateTangents(vertices, positions, uvs, vertCount);
+		points = positions;
 
 		numIndices = vertCount;
-
 		//create the vertex and index buffer
 		//vertexBuffer
 		D3D11_BUFFER_DESC vbd;

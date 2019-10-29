@@ -336,6 +336,7 @@ void Game::CreateBasicGeometry()
 	//std::shared_ptr<Mesh> object = std::make_shared<Mesh>("../../Assets/Models/helix.obj", device);
 
 	ship = std::make_shared<Ship>(shipMesh, material);
+	ship->UseRigidBody();
 	ship->SetTag("Player");
 	entities.emplace_back(ship);
 
@@ -343,6 +344,7 @@ void Game::CreateBasicGeometry()
 	for (size_t i = 0; i < MAX_BULLETS; i++)
 	{
 		std::shared_ptr<Bullet> newBullet = std::make_shared<Bullet>(sphere, material);
+		newBullet->UseRigidBody();
 		bullets.emplace_back(newBullet);
 	}
 	
@@ -778,6 +780,15 @@ void Game::Update(float deltaTime, float totalTime)
 		if (entities[i]->GetTag() == "bullet" && entities[i]->GetAliveState() == false)
 		{
 			entities.erase(entities.begin() + i);
+		}
+	}
+
+	//checking for collision
+	for (int i = 0; i < entities.size(); i++)
+	{
+		for (int j = 0; j < entities.size(); j++)
+		{
+			entities[i]->IsColliding(entities[j]);
 		}
 	}
 
