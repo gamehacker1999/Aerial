@@ -6,6 +6,7 @@
 #include"Mesh.h"
 #include"Ship.h"
 #include "Bullet.h"
+#include "Obstacle.h"
 #include<vector>
 #include"Camera.h"
 #include"Lights.h"
@@ -141,5 +142,15 @@ private:
 
 	//I'm being dumb shhhhhh
 	bool fired = false;
+
+	//I'm just copying code from the unity prototype lol
+	float frameCounter;
+	std::vector<std::shared_ptr<Obstacle>> obstacles; // might move this to where the other list is
+	int score;
+
+	//so i can give the obstacles textures
+	std::shared_ptr<Mesh> sphere;
+	std::shared_ptr<Material> material;
+
 };
 
