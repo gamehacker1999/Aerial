@@ -100,6 +100,10 @@ bool Ship::IsColliding(std::shared_ptr<Entity> other)
 		&& GetRigidBody()->SATCollision(other->GetRigidBody()))
 	{
 		health -= 1;
+		if (health <= 0)
+		{
+			Die();
+		}
 		other->Die();
 		return true;
 

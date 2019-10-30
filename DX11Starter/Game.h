@@ -13,6 +13,8 @@
 #include"Skybox.h"
 #include"Textures.h"
 #include"Terrain.h"
+#include<thread>
+#include<mutex>
 
 #define MAX_BULLETS 3
 class Game 
@@ -39,11 +41,12 @@ private:
 
 	// Initialization helper methods - feel free to customize, combine, etc.
 	void LoadShaders(); 
-	void CreateMatrices();
 	void CreateBasicGeometry();
+	void InitializeEntities();
 	void CreateIrradianceMaps();
 	void CreatePrefilteredMaps();
 	void CreateEnvironmentLUTs();
+	void RestartGame();
 
 	// Wrappers for DirectX shaders to provide simplified functionality
 	SimpleVertexShader* vertexShader;
@@ -77,6 +80,11 @@ private:
 	std::shared_ptr<Ship> ship;
 	std::vector<std::shared_ptr<Bullet>> bullets;
 	std::vector<std::shared_ptr<Entity>> entities;
+
+	//meshes
+	std::shared_ptr<Mesh> shipMesh;
+	std::shared_ptr<Mesh> obstacleMesh;
+	std::shared_ptr<Mesh> bulletMesh;
 
 	//list of lights
 	//std::vector<Light> lights;

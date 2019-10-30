@@ -154,7 +154,6 @@ void Game::Init()
 	// geometry to draw and some simple camera matrices.
 	//  - You'll be expanding and/or replacing these later
 	LoadShaders();
-	CreateMatrices();
 	CreateBasicGeometry();
 
 	//initalizing camera
@@ -225,6 +224,8 @@ void Game::Init()
 
 	CreateEnvironmentLUTs();
 
+	InitializeEntities();
+
 	bulletCounter = 0;
 
 }
@@ -268,18 +269,6 @@ void Game::LoadShaders()
 	fullScreenTriangleVS = new SimpleVertexShader(device, context);
 	fullScreenTriangleVS->LoadShaderFile(L"FullScreenTriangleVS.cso");
 }
-
-
-
-// --------------------------------------------------------
-// Initializes the matrices necessary to represent our geometry's 
-// transformations and our 3D camera
-// --------------------------------------------------------
-void Game::CreateMatrices()
-{
-
-}
-
 
 // --------------------------------------------------------
 // Creates the geometry we're going to draw - a single triangle for now
@@ -344,33 +333,10 @@ void Game::CreateBasicGeometry()
 	std::shared_ptr<Material> goldMaterial = std::make_shared<Material>(vertexShader, pbrPixelShader, samplerState,
 		goldTextureSRV, goldNormalTextureSRV, goldRoughnessTextureSRV, goldMetalnessTextureSRV);
 
-	std::shared_ptr<Mesh> shipMesh = std::make_shared<Mesh>("../../Assets/Models/ship.obj",device);
+	shipMesh = std::make_shared<Mesh>("../../Assets/Models/ship.obj",device);
 	std::shared_ptr<Mesh> object = std::make_shared<Mesh>("../../Assets/Models/cube.obj", device);
-	sphere = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
-
-	//will be used for obstacles too
-	//sphere = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
-	//std::shared_ptr<Mesh> object = std::make_shared<Mesh>("../../Assets/Models/helix.obj", device);
-
-	ship = std::make_shared<Ship>(shipMesh, material);
-	ship->UseRigidBody();
-	ship->SetTag("Player");
-	entities.emplace_back(ship);
-
-	//generate the bullets
-	for (size_t i = 0; i < MAX_BULLETS; i++)
-	{
-		std::shared_ptr<Bullet> newBullet = std::make_shared<Bullet>(sphere, material);
-		newBullet->UseRigidBody();
-		bullets.emplace_back(newBullet);
-	}
-	
-	auto shipOrientation = XMQuaternionRotationAxis(XMVectorSet(0, 1, 0, 0), 3.14159f);
-	XMFLOAT4 retShipRotation;
-	XMStoreFloat4(&retShipRotation, shipOrientation);
-	entities[0]->SetRotation(retShipRotation);
-	ship->SetOriginalRotation(retShipRotation);
-	
+	obstacleMesh = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
+	bulletMesh = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
 
 	ID3D11SamplerState* samplerStateCube;
 	//sampler state description
@@ -391,6 +357,28 @@ void Game::CreateBasicGeometry()
 	skyRSDesc.FillMode = D3D11_FILL_SOLID;
 	skyRSDesc.CullMode = D3D11_CULL_FRONT;
 	device->CreateRasterizerState(&skyRSDesc, &skyRS);
+}
+
+void Game::InitializeEntities()
+{
+	ship = std::make_shared<Ship>(shipMesh, material);
+	ship->UseRigidBody();
+	ship->SetTag("Player");
+	entities.emplace_back(ship);
+
+	auto shipOrientation = XMQuaternionRotationAxis(XMVectorSet(0, 1, 0, 0), 3.14159f);
+	XMFLOAT4 retShipRotation;
+	XMStoreFloat4(&retShipRotation, shipOrientation);
+	ship->SetRotation(retShipRotation);
+	ship->SetOriginalRotation(retShipRotation);
+
+	for (size_t i = 0; i < MAX_BULLETS; i++)
+	{
+		std::shared_ptr<Bullet> newBullet = std::make_shared<Bullet>(bulletMesh, material);
+		newBullet->UseRigidBody();
+		bullets.emplace_back(newBullet);
+	}
+
 }
 
 void Game::CreateIrradianceMaps()
@@ -742,6 +730,24 @@ void Game::CreateEnvironmentLUTs()
 	environmentBrdfTexture->Release();
 }
 
+void Game::RestartGame()
+{
+
+	//std::this_thread::sleep_for(std::chrono::seconds(2));
+
+	camera->SetPositionTargetAndUp(XMFLOAT3(0.0f, 3.5f, -18.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
+
+	for (size_t i = 0; i < entities.size(); i++)
+	{
+		entities[i] = nullptr;
+	}
+
+	
+	InitializeEntities();
+
+
+}
+
 
 // --------------------------------------------------------
 // Handle resizing DirectX "stuff" to match the new window size.
@@ -787,7 +793,7 @@ void Game::Update(float deltaTime, float totalTime)
 			ship->GetPosition().z + 30.0f
 		};
 
-		std::shared_ptr<Obstacle> newObstacle = std::make_shared<Obstacle>(sphere, material);
+		std::shared_ptr<Obstacle> newObstacle = std::make_shared<Obstacle>(obstacleMesh, material);
 
 
 		// set position
@@ -807,7 +813,7 @@ void Game::Update(float deltaTime, float totalTime)
 		if (bulletCounter<=MAX_BULLETS)
 		{
 			bulletCounter++;
-			std::shared_ptr<Bullet> newBullet = std::make_shared<Bullet>(sphere, material);
+			std::shared_ptr<Bullet> newBullet = std::make_shared<Bullet>(bulletMesh, material);
 			newBullet->UseRigidBody();
 			XMFLOAT3 bulletPos = ship->GetPosition();
 			bulletPos.y += 0.5f;
@@ -823,7 +829,10 @@ void Game::Update(float deltaTime, float totalTime)
 
 	for (int i = 0; i < entities.size(); i++)
 	{
-		entities[i]->Update(deltaTime);
+		if (entities[i]->GetAliveState())
+		{
+			entities[i]->Update(deltaTime);
+		}
 	}
 
 	//checking for collision
@@ -843,6 +852,16 @@ void Game::Update(float deltaTime, float totalTime)
 			{
 				bulletCounter--;
 			}
+
+			if (entities[i]->GetTag() == "Player")
+			{
+				//std::thread t1(&Game::RestartGame,this);
+				//t1.detach();
+				RestartGame();
+				entities[i] = nullptr;
+				//break;
+			}
+
 			entities[i] = nullptr;
 		}
 	}
