@@ -858,8 +858,8 @@ void Game::Update(float deltaTime, float totalTime)
 				//std::thread t1(&Game::RestartGame,this);
 				//t1.detach();
 				RestartGame();
-				entities[i] = nullptr;
-				//break;
+				//entities[i] = nullptr;
+				break;
 			}
 
 			entities[i] = nullptr;
