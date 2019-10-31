@@ -742,6 +742,7 @@ void Game::RestartGame()
 		entities[i] = nullptr;
 	}
 
+	bulletCounter = 0;
 	
 	InitializeEntities();
 
@@ -788,8 +789,8 @@ void Game::Update(float deltaTime, float totalTime)
 	if (frameCounter > 3)
 	{
 		XMFLOAT3 position = {
-			(float)(rand() % 41 - 20),
-			0.0f, // edit this to change y-range
+			(float)(rand() % 31 - 15),
+			(float)(rand() % 11 - 5), // edit this to change y-range
 			ship->GetPosition().z + 30.0f
 		};
 
