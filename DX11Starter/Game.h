@@ -8,6 +8,7 @@
 #include "Bullet.h"
 #include "Obstacle.h"
 #include<vector>
+#include"Emitter.h"
 #include"Camera.h"
 #include"Lights.h"
 #include"Skybox.h"
@@ -80,6 +81,8 @@ private:
 	std::shared_ptr<Ship> ship;
 	std::vector<std::shared_ptr<Bullet>> bullets;
 	std::vector<std::shared_ptr<Entity>> entities;
+	std::shared_ptr<Entity> water;
+	std::shared_ptr<Material> waterMat;
 
 	//meshes
 	std::shared_ptr<Mesh> shipMesh;
@@ -88,6 +91,13 @@ private:
 
 	//list of lights
 	//std::vector<Light> lights;
+	//variables related to the shadow mapping depth buffer
+	ID3D11DepthStencilView* shadowDepthStencil;
+	ID3D11Texture2D* shadowMapTexture = nullptr;
+	ID3D11ShaderResourceView* shadowSRV;
+	D3D11_VIEWPORT shadowViewport;
+	ID3D11RasterizerState* shadowRasterizerState;
+	ID3D11SamplerState* shadowSamplerState;
 
 	//camera
 	std::shared_ptr<Camera> camera;
@@ -142,6 +152,9 @@ private:
 	//simple shader to render a full screen quad
 	SimpleVertexShader* fullScreenTriangleVS;
 
+	//water shader
+	SimplePixelShader* waterPS;
+
 	//1d texture color band
 	ID3D11ShaderResourceView* celShadingSRV;
 
@@ -160,6 +173,40 @@ private:
 	//so i can give the obstacles textures
 	std::shared_ptr<Mesh> sphere;
 	std::shared_ptr<Material> material;
+
+	//particles
+	SimplePixelShader* particlePS;
+	SimpleVertexShader* particleVS;
+	ID3D11ShaderResourceView* particleTexture;
+	ID3D11DepthStencilState* particleDepth;
+	ID3D11BlendState* particleBlendState;
+	std::shared_ptr<Emitter> shipGas;
+	std::shared_ptr<Emitter> shipGas2;
+
+	//textures
+	ID3D11ShaderResourceView* textureSRV;
+	//trying to load a texture
+
+	//trying to load a normalMap
+	ID3D11ShaderResourceView* normalTextureSRV;
+
+	ID3D11ShaderResourceView* roughnessTextureSRV;
+
+	ID3D11ShaderResourceView* metalnessTextureSRV;
+
+	ID3D11ShaderResourceView* goldTextureSRV;
+	//trying to load a texture
+
+	//trying to load a normalMap
+	ID3D11ShaderResourceView* goldNormalTextureSRV;
+
+	ID3D11ShaderResourceView* goldRoughnessTextureSRV;
+
+	ID3D11ShaderResourceView* goldMetalnessTextureSRV;
+
+	ID3D11ShaderResourceView* waterDiffuse;
+
+	//loading cel shading
 
 };
 

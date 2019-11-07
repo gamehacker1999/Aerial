@@ -15,7 +15,7 @@ Camera::Camera(XMFLOAT3 position, XMFLOAT3 direction, XMFLOAT3 up)
 		XMLoadFloat3(&this->direction), XMLoadFloat3(&this->up));
 
 	//storing this value in view matrix
-	XMStoreFloat4x4(&viewMatrix, tempView);
+	XMStoreFloat4x4(&viewMatrix, XMMatrixTranspose(tempView));
 
 }
 
@@ -63,7 +63,7 @@ void Camera::SetPositionTargetAndUp(XMFLOAT3 position, XMFLOAT3 direction, XMFLO
 		XMLoadFloat3(&this->direction), XMLoadFloat3(&this->up));
 
 	//storing this value in view matrix
-	XMStoreFloat4x4(&viewMatrix, tempView);
+	XMStoreFloat4x4(&viewMatrix, XMMatrixTranspose(tempView));
 }
 
 void Camera::ManageKeyboard(float deltaTime)

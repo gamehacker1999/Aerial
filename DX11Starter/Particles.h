@@ -8,17 +8,20 @@ struct Particle
 {
 	XMFLOAT3 position;
 	XMFLOAT4 color;
-	XMFLOAT3 StartVelocity;
+	XMFLOAT3 startVelocity;
+	XMFLOAT3 startPos;
 	float size;
 	float age;
+	float rotStart;
+	float rotEnd;
+	float rot;
 };
 
-//single vertex of a particel
+//single vertex of a particle
 //each particle needs four vertcies to make a quad
 struct ParticleVertex 
 {
 	XMFLOAT3 position;
-	XMFLOAT2 texCoord;
+	XMFLOAT2 uv;
 	XMFLOAT4 color;
-	float size;
 };

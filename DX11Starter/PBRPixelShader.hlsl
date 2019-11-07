@@ -219,7 +219,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 
 	//calulating skybox reflection
 	float3 skyboxReflection = CalculateEnvironmentReflection(finalNormal, input.worldPosition);
-
+	
 	//doing calculations from shadow map to see if it is a shadow or not
 	float lightDepth = input.lightPos.z / input.lightPos.w;
 
