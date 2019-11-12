@@ -6,15 +6,14 @@ using namespace DirectX;
 //struct to define a particle
 struct Particle
 {
-	XMFLOAT3 position;
-	XMFLOAT4 color;
+	float spawnTime;
+	XMFLOAT3 startPosition;
+
+	float rotationStart;
 	XMFLOAT3 startVelocity;
-	XMFLOAT3 startPos;
-	float size;
-	float age;
-	float rotStart;
-	float rotEnd;
-	float rot;
+
+	float rotationEnd;
+	XMFLOAT3 padding;
 };
 
 //single vertex of a particle

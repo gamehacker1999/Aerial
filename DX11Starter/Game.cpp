@@ -360,15 +360,38 @@ void Game::Init()
 
 	bulletCounter = 0;
 
-	shipGas = std::make_shared<Emitter>(300, 50, 0.7f, 0.8f, 0.03f, XMFLOAT4(1, 1.0f, 1.0f, 1.0f),
-		XMFLOAT4(1, 0.1f, 0.1f, 0.6f), XMFLOAT3(0, 0, -1.f), XMFLOAT3(0.2f, 0.2f, 0.2f),
-		ship->GetPosition(), XMFLOAT3(0.1f, 0.1f, 0.1f), XMFLOAT4(-2, 2, -2, 2),
-		XMFLOAT3(0.f, -1.f, 0.f), device, particleVS, particlePS, particleTexture);
+	shipGas = std::make_shared<Emitter>(
+		300, //max particles
+		50, //particles per second
+		0.7f, //lifetime
+		0.8f, //start size
+		0.03f, //end size
+		XMFLOAT4(1, 1.0f, 1.0f, 1.0f), //start color
+		XMFLOAT4(1, 0.1f, 0.1f, 0.6f), //end color
+		XMFLOAT3(0, 0, -1.f), //start vel
+		XMFLOAT3(0.2f, 0.2f, 0.2f), //velocity deviation range
+		ship->GetPosition(), //start position
+		XMFLOAT3(0.1f, 0.1f, 0.1f), //position deviation range
+		XMFLOAT4(-2, 2, -2, 2), //rotation around z axis
+		XMFLOAT3(0.f, -1.f, 0.f), //acceleration
+		device, particleVS, particlePS, particleTexture);
 
-	shipGas2 = std::make_shared<Emitter>(300, 50, 0.7f, 0.8f, 0.03f, XMFLOAT4(1, 1.0f, 1.0f, 1.0f),
-		XMFLOAT4(1, 0.6f, 0.1f, 0.f), XMFLOAT3(0, 0, -1.f), XMFLOAT3(0.2f, 0.2f, 0.2f),
-		ship->GetPosition(), XMFLOAT3(0.1f, 0.1f, 0.1f), XMFLOAT4(-2, 2, -2, 2),
-		XMFLOAT3(0.f, -1.f, 0.f), device, particleVS, particlePS, particleTexture);
+	//look up for what each piece means
+	shipGas2 = std::make_shared<Emitter>(
+		300, 
+		50, 
+		0.7f, 
+		0.8f, 
+		0.03f, 
+		XMFLOAT4(1, 1.0f, 1.0f, 1.0f),
+		XMFLOAT4(1, 0.6f, 0.1f, 0.f), 
+		XMFLOAT3(0, 0, -1.f), 
+		XMFLOAT3(0.2f, 0.2f, 0.2f),
+		ship->GetPosition(), 
+		XMFLOAT3(0.1f, 0.1f, 0.1f), 
+		XMFLOAT4(-2, 2, -2, 2),
+		XMFLOAT3(0.f, -1.f, 0.f), 
+		device, particleVS, particlePS, particleTexture);
 
 }
 
@@ -994,7 +1017,7 @@ void Game::Update(float deltaTime, float totalTime)
 		}
 	}
 
-	shipGas->UpdateParticles(deltaTime);
+	shipGas->UpdateParticles(deltaTime,totalTime);
 	auto shipPos = ship->GetPosition();
 	auto shipForward = ship->GetForward();
 	XMFLOAT3 em1Pos;
@@ -1003,7 +1026,7 @@ void Game::Update(float deltaTime, float totalTime)
 	shipGas->SetAcceleration(shipForward);
 	shipGas->SetPosition(em1Pos);
 
-	shipGas2->UpdateParticles(deltaTime);
+	shipGas2->UpdateParticles(deltaTime,totalTime);
 	shipPos = ship->GetPosition();
 	XMFLOAT3 em2Pos;
 	XMStoreFloat3(&em2Pos, XMLoadFloat3(&shipPos) + XMLoadFloat3(&shipForward) * 3);
@@ -1194,8 +1217,8 @@ void Game::Draw(float deltaTime, float totalTime)
 	context->OMSetDepthStencilState(particleDepth, 0);
 
 	particlePS->SetSamplerState("sampleOptions", samplerState);
-	shipGas->Draw(context, camera);
-	shipGas2->Draw(context, camera);
+	shipGas->Draw(context, camera,totalTime);
+	shipGas2->Draw(context, camera,totalTime);
 
 	context->OMSetDepthStencilState(0, 0);
 	context->OMSetBlendState(0, blend, 0xffffffff);

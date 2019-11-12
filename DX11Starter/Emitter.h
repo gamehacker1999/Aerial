@@ -36,8 +36,8 @@ public:
 	void SetPosition(XMFLOAT3 pos);
 	void SetAcceleration(XMFLOAT3 acel);
 
-	void UpdateParticles(float deltaTime);
-	void Draw(ID3D11DeviceContext* context, std::shared_ptr<Camera> camera);
+	void UpdateParticles(float deltaTime, float currentTime);
+	void Draw(ID3D11DeviceContext* context, std::shared_ptr<Camera> camera,float currentTime);
 
 	int particlesPerSecond;
 	float secondsPerParticle;
@@ -74,9 +74,12 @@ public:
 	SimpleVertexShader* vs;
 	SimplePixelShader* ps;
 
+	ID3D11Buffer* particleBuffer;
+	ID3D11ShaderResourceView* particleData;
+
 	// Update Methods
-	void UpdateSingleParticle(float dt, int index);
-	void SpawnParticle();
+	void UpdateSingleParticle(float dt, int index, float currentTime);
+	void SpawnParticle(float currentTime);
 
 	// Copy methods
 	void CopyParticlesToGPU(ID3D11DeviceContext* context, std::shared_ptr<Camera> camera);
