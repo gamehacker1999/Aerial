@@ -12,7 +12,7 @@ cbuffer externalData : register(b0)
 
 // Struct representing a single vertex worth of data
 struct VertexShaderInput
-{ 
+{
 
 	float3 position		: POSITION;     // XYZ position
 	//float4 color		: COLOR;        // RGBA color
@@ -31,7 +31,7 @@ struct VertexToPixel
 	float3 worldPosition: POSITION; //position of vertex in world space
 	float3 tangent		: TANGENT;	//tangent of the vertex
 	float2 uv			: TEXCOORD;
-	float clip : SV_ClipDistance0;
+	noperspective float2 screenUV		: VPOS;
 };
 
 // --------------------------------------------------------
@@ -41,7 +41,7 @@ struct VertexToPixel
 // - Output is a single struct of data to pass down the pipeline
 // - Named "main" because that's the default the shader compiler looks for
 // --------------------------------------------------------
-VertexToPixel main( VertexShaderInput input )
+VertexToPixel main(VertexShaderInput input)
 {
 	// Set up output struct
 	VertexToPixel output;
@@ -58,17 +58,19 @@ VertexToPixel main( VertexShaderInput input )
 	output.normal = mul(input.normal, (float3x3)world);
 
 	//sending the world position of the vertex to the fragment shader
-	output.worldPosition = mul(float4(input.position,1.0f),world).xyz;
+	output.worldPosition = mul(float4(input.position, 1.0f), world).xyz;
 
 	//sending the world coordinates of the tangent to the pixel shader
 	output.tangent = mul(input.tangent, (float3x3)world);
-
-	output.clip = dot(mul(float4(input.position, 1.0f), world), clipDistance);
 
 	//sending the UV coordinates
 	output.uv = input.uv;
 
 	matrix lightWorldViewProj = mul(mul(world, lightView), lightProj);
+
+	output.screenUV = output.position.xy / output.position.w;
+	output.screenUV.x = output.screenUV.x * 0.5 + 0.5;
+	output.screenUV.y = -output.screenUV.y * 0.5 + 0.5;
 
 	//sending the the shadow position
 	output.lightPos = mul(float4(input.position, 1.0f), lightWorldViewProj);

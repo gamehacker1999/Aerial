@@ -9,6 +9,8 @@ struct VertexToPixel
 	float3 worldPosition: POSITION; //position of vertex in world space
 	float3 tangent		: TANGENT;	//tangent of the vertex
 	float2 uv			: TEXCOORD;
+	float clip : SV_ClipDistance0;
+
 };
 
 //struct to desctibe the directional light
@@ -252,7 +254,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 
 	float3 ambientIndirect = (kdIndirect * diffuseIndirect + specularIndirect * surfaceColor.rgb);
 
-	float3 color = (Lo*shadowDepth + ambientIndirect);
+	float3 color = (Lo*shadowDepth + ambientIndirect*2);
 
 	float4 rimColor = float4(1.0f, 0.0f, 0.0f, 1.0f);
 	

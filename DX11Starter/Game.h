@@ -14,6 +14,7 @@
 #include"Skybox.h"
 #include"Textures.h"
 #include"Terrain.h"
+#include"Water.h"
 #include<thread>
 #include<mutex>
 
@@ -48,6 +49,14 @@ private:
 	void CreatePrefilteredMaps();
 	void CreateEnvironmentLUTs();
 	void RestartGame();
+	void DrawSceneOpaque(XMFLOAT4 clip);
+	void DrawSky(XMFLOAT4 clip);
+	void DrawSceneBlend(XMFLOAT4 clip);
+	void DrawParticles(float totalTime);
+	void DrawWaterReflection();
+	void RenderShadowMap();
+	void DrawFullScreenQuad(ID3D11ShaderResourceView* texSRV);
+
 
 	// Wrappers for DirectX shaders to provide simplified functionality
 	SimpleVertexShader* vertexShader;
@@ -81,8 +90,6 @@ private:
 	std::shared_ptr<Ship> ship;
 	std::vector<std::shared_ptr<Bullet>> bullets;
 	std::vector<std::shared_ptr<Entity>> entities;
-	std::shared_ptr<Entity> water;
-	std::shared_ptr<Material> waterMat;
 
 	//meshes
 	std::shared_ptr<Mesh> shipMesh;
@@ -152,9 +159,6 @@ private:
 	//simple shader to render a full screen quad
 	SimpleVertexShader* fullScreenTriangleVS;
 
-	//water shader
-	SimplePixelShader* waterPS;
-
 	//1d texture color band
 	ID3D11ShaderResourceView* celShadingSRV;
 
@@ -204,7 +208,20 @@ private:
 
 	ID3D11ShaderResourceView* goldMetalnessTextureSRV;
 
+	//water textures
+	std::shared_ptr<Water> water;
 	ID3D11ShaderResourceView* waterDiffuse;
+	ID3D11ShaderResourceView* waterNormal1;
+	ID3D11ShaderResourceView* waterNormal2;
+	std::shared_ptr<Mesh> waterMesh;
+	ID3D11SamplerState* waterSampler;
+	SimplePixelShader* waterPS;
+	SimpleVertexShader* waterVS;
+	SimpleVertexShader* waterReflectionVS;
+	SimplePixelShader* waterReflectionPS;
+	ID3D11ShaderResourceView* waterReflectionSRV;
+	ID3D11RenderTargetView* waterReflectionRTV;
+	SimplePixelShader* fullScreenTrianglePS;
 
 	//loading cel shading
 

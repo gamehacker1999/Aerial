@@ -25,6 +25,8 @@ Game::Game(HINSTANCE hInstance)
 	pixelShader = 0;
 	shadowVertexShader = nullptr;
 	shadowPixelShader = nullptr;
+
+	fullScreenTrianglePS = nullptr;
 	pbrPixelShader = nullptr;
 
 	cubemapViews.reserve(6); //6 view matrices for 6 faces of the cube
@@ -52,6 +54,17 @@ Game::Game(HINSTANCE hInstance)
 	backCullRS = nullptr;
 
 	skyRS = nullptr;
+
+	waterDiffuse = nullptr;
+	waterNormal1 = nullptr;
+	waterNormal2 = nullptr;
+	waterPS = nullptr;
+	waterVS = nullptr;
+	waterReflectionRTV = nullptr;
+	waterReflectionSRV = nullptr;
+	waterReflectionPS = nullptr;
+	waterReflectionVS = nullptr;
+	waterSampler = nullptr;
 
 	prevMousePos = { 0,0 };	
 
@@ -151,6 +164,39 @@ Game::~Game()
 	if (particleTexture)
 		particleTexture->Release();
 
+	if (waterPS)
+		delete waterPS;
+
+	if (waterVS)
+		delete waterVS;
+
+	if (waterDiffuse)
+		waterDiffuse->Release();
+
+	if (waterNormal1)
+		waterNormal1->Release();
+
+	if (waterNormal2)
+		waterNormal2->Release();
+
+	if (waterReflectionPS)
+		delete waterReflectionPS;
+
+	if (waterReflectionVS)
+		delete waterReflectionVS;
+
+	if (waterReflectionRTV)
+		waterReflectionRTV->Release();
+
+	if (waterReflectionSRV)
+		waterReflectionSRV->Release();
+
+	if (waterSampler)
+		waterSampler->Release();
+
+	if (fullScreenTrianglePS)
+		delete fullScreenTrianglePS;
+
 	if (shadowDepthStencil) shadowDepthStencil->Release();
 	if (shadowMapTexture) shadowMapTexture->Release();
 	if (shadowRasterizerState) { shadowRasterizerState->Release(); }
@@ -178,7 +224,6 @@ Game::~Game()
 
 	goldMetalnessTextureSRV->Release();
 
-	waterDiffuse->Release();
 
 	//releasing depth stencil
 	dssLessEqual->Release();
@@ -341,6 +386,47 @@ void Game::Init()
 
 	device->CreateSamplerState(&shadowSamplerDesc, &shadowSamplerState);
 
+	//creating water sampler, srv and rtv
+	D3D11_SAMPLER_DESC waterSampDesc = {};
+	waterSampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	waterSampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	waterSampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	waterSampDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+	waterSampDesc.MaxAnisotropy = 4;
+	waterSampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+	device->CreateSamplerState(&waterSampDesc, &waterSampler);
+
+	ID3D11Texture2D* waterReflectionTexture2D=nullptr;
+
+	D3D11_TEXTURE2D_DESC waterReflectionTexDesc = {};
+	waterReflectionTexDesc.Width = width;
+	waterReflectionTexDesc.Height = height;
+	waterReflectionTexDesc.MipLevels = 1;
+	waterReflectionTexDesc.ArraySize = 1;
+	waterReflectionTexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	waterReflectionTexDesc.Usage = D3D11_USAGE_DEFAULT;
+	waterReflectionTexDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	waterReflectionTexDesc.CPUAccessFlags = 0;
+	waterReflectionTexDesc.MipLevels = 0;
+	waterReflectionTexDesc.SampleDesc.Quality = 0;
+	waterReflectionTexDesc.SampleDesc.Count = 1;
+	device->CreateTexture2D(&waterReflectionTexDesc, 0, &waterReflectionTexture2D);
+
+	D3D11_RENDER_TARGET_VIEW_DESC waterReflectionRTVDesc = {};
+	waterReflectionRTVDesc.Format = waterReflectionRTVDesc.Format;
+	waterReflectionRTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	waterReflectionRTVDesc.Texture2D.MipSlice = 0;
+	device->CreateRenderTargetView(waterReflectionTexture2D, &waterReflectionRTVDesc, &waterReflectionRTV);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC waterReflectionSRVDesc = {};
+	waterReflectionSRVDesc.Format = waterReflectionRTVDesc.Format;
+	waterReflectionSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	waterReflectionSRVDesc.Texture2D.MipLevels = 1;
+	waterReflectionSRVDesc.Texture2D.MostDetailedMip = 0;
+	device->CreateShaderResourceView(waterReflectionTexture2D, &waterReflectionSRVDesc, &waterReflectionSRV);
+
+	waterReflectionTexture2D->Release();
 
 	//terrain = std::make_shared<Terrain>();
 	//terrain->LoadHeightMap(device,"../../Assets/Textures/terrain.raw" );
@@ -437,11 +523,26 @@ void Game::LoadShaders()
 	waterPS = new SimplePixelShader(device, context);
 	waterPS->LoadShaderFile(L"WaterPS.cso");
 
+	waterVS = new SimpleVertexShader(device, context);
+	waterVS->LoadShaderFile(L"WaterVS.cso");
+
 	particlePS = new SimplePixelShader(device, context);
 	particlePS->LoadShaderFile(L"ParticlesPS.cso");
 
 	particleVS = new SimpleVertexShader(device, context);
 	particleVS->LoadShaderFile(L"ParticlesVS.cso");
+
+	waterPS = new SimplePixelShader(device, context);
+	waterPS->LoadShaderFile(L"WaterPS.cso");
+
+	waterReflectionPS = new SimplePixelShader(device, context);
+	waterReflectionPS->LoadShaderFile(L"WaterReflectionPS.cso");
+
+	waterReflectionVS = new SimpleVertexShader(device, context);
+	waterReflectionVS->LoadShaderFile(L"WaterReflectionVS.cso");
+
+	fullScreenTrianglePS = new SimplePixelShader(device, context);
+	fullScreenTrianglePS->LoadShaderFile(L"FullScreenTrianglePS.cso");
 }
 
 // --------------------------------------------------------
@@ -480,6 +581,10 @@ void Game::CreateBasicGeometry()
 	//loading cel shading
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/ColorBand.jpg",0,&celShadingSRV);
 
+	//loading water textures
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/water1Normal.jpg", 0, &waterNormal1);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/water2Normal.jpg", 0, &waterNormal2);
+
 	//creating a sampler state
 	//sampler state description
 	D3D11_SAMPLER_DESC samplerDesc;
@@ -503,12 +608,11 @@ void Game::CreateBasicGeometry()
 	std::shared_ptr<Material> goldMaterial = std::make_shared<Material>(vertexShader, pbrPixelShader, samplerState,
 		goldTextureSRV, goldNormalTextureSRV, goldRoughnessTextureSRV, goldMetalnessTextureSRV);
 
-	waterMat = std::make_shared<Material>(vertexShader,waterPS,samplerState,waterDiffuse);
-
 	shipMesh = std::make_shared<Mesh>("../../Assets/Models/ship.obj",device);
 	std::shared_ptr<Mesh> object = std::make_shared<Mesh>("../../Assets/Models/cube.obj", device);
 	obstacleMesh = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
 	bulletMesh = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
+	waterMesh = std::make_shared<Mesh>("../../Assets/Models/quad.obj", device);
 
 	ID3D11SamplerState* samplerStateCube;
 	//sampler state description
@@ -551,15 +655,7 @@ void Game::InitializeEntities()
 		bullets.emplace_back(newBullet);
 	}
 
-	std::shared_ptr<Mesh> waterMesh = std::make_shared<Mesh>("../../Assets/Models/quad.obj", device);
-	water = std::make_shared<Entity>(waterMesh, waterMat);
-	XMFLOAT3 waterScale = XMFLOAT3(3.f, 3.f, 3.f);
-	water->SetScale(waterScale);
-
-	XMFLOAT3 waterPos = ship->GetPosition();
-	waterPos.y -= 3;
-	water->SetPosition(waterPos);
-
+	water = std::make_shared<Water>(waterMesh, waterDiffuse, waterNormal1, waterNormal2, waterPS, waterVS, samplerState);
 }
 
 void Game::CreateIrradianceMaps()
@@ -930,6 +1026,184 @@ void Game::RestartGame()
 
 }
 
+void Game::DrawSceneOpaque(XMFLOAT4 clip)
+{
+	// Set buffers in the input assembler
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+
+	XMFLOAT3 up(0.0f, 1.0f, 0.0f);
+
+	//taking the center of the camera and backing up from the direction of the light
+	//this is the position of the light
+	//XMStoreFloat3(&directionLightPosition, XMLoadFloat3(&center) - XMLoadFloat3(&directionalLight.direction) * 10000.f);
+	//creating the camera look to matrix
+	auto tempLightView = XMMatrixLookAtLH(XMLoadFloat3(&lights[0].position),
+		XMLoadFloat3(&ship->GetPosition()), XMLoadFloat3(&up));
+
+	//storing the light view matrix
+	XMFLOAT4X4 lightView;
+	XMStoreFloat4x4(&lightView, XMMatrixTranspose(tempLightView));
+
+	//calculating projection matrix
+	XMFLOAT4X4 lightProjection;
+	XMMATRIX tempLightProjection = XMMatrixOrthographicLH(100.f, 100.f,
+		0.1f, 1000.0f);
+	XMStoreFloat4x4(&lightProjection, XMMatrixTranspose(tempLightProjection));
+
+	for (size_t i = 0; i < entities.size(); i++)
+	{
+		//preparing material for entity
+		entities[i]->GetMaterial()->GetVertexShader()->SetMatrix4x4("lightView", lightView);
+		entities[i]->GetMaterial()->GetVertexShader()->SetMatrix4x4("lightProj", lightProjection);
+		entities[i]->GetMaterial()->GetVertexShader()->SetFloat4("clipDistance", XMFLOAT4(0, 0, 0, 0));
+		entities[i]->PrepareMaterial(camera->GetViewMatrix(), camera->GetProjectionMatrix());
+
+		//adding lights and sending camera position
+		entities[i]->GetMaterial()->GetPixelShader()->SetData("light", &directionalLight, sizeof(DirectionalLight)); //adding directional lights to the scene
+		entities[i]->GetMaterial()->GetPixelShader()->SetData("lights", &lights[0], sizeof(Light) * MAX_LIGHTS);
+		entities[i]->GetMaterial()->GetPixelShader()->SetInt("lightCount", 2);
+
+		//entities[i]->GetMaterial()->GetPixelShader()->SetData("light2", &directionalLight2, sizeof(DirectionalLight));
+		entities[i]->GetMaterial()->GetPixelShader()->SetFloat3("cameraPosition", camera->GetPosition());
+
+		entities[i]->GetMaterial()->GetPixelShader()->SetShaderResourceView("cubeMap", skybox->GetSkyboxTexture());
+		entities[i]->GetMaterial()->GetPixelShader()->SetShaderResourceView("celShading", celShadingSRV);
+		entities[i]->GetMaterial()->GetPixelShader()->SetShaderResourceView("irradianceMap", irradienceSRV);
+		entities[i]->GetMaterial()->GetPixelShader()->SetShaderResourceView("shadowMap", shadowSRV);
+		entities[i]->GetMaterial()->GetPixelShader()->SetShaderResourceView("prefilteredMap", prefilteredSRV);
+		entities[i]->GetMaterial()->GetPixelShader()->SetShaderResourceView("environmentBRDF", environmentBrdfSRV);
+		entities[i]->GetMaterial()->GetPixelShader()->SetSamplerState("shadowSampler", shadowSamplerState);
+
+		entities[i]->GetMaterial()->SetPixelShaderData();
+
+		//setting the vertex and index buffer
+		auto tempVertexBuffer = entities[i]->GetMesh()->GetVertexBuffer();
+		context->IASetVertexBuffers(0, 1, &tempVertexBuffer, &stride, &offset);
+		context->IASetIndexBuffer(entities[i]->GetMesh()->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+
+		//drawing the entity
+		context->DrawIndexed(entities[i]->GetMesh()->GetIndexCount(), 0, 0);
+
+		entities[i]->GetMaterial()->GetPixelShader()->SetShaderResourceView("shadowMap", nullptr);
+	}
+}
+
+void Game::DrawSky(XMFLOAT4 clip)
+{
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+
+	context->OMSetDepthStencilState(dssLessEqual, 0);
+
+	//draw the skybox
+	context->RSSetState(skyRS);
+	skybox->PrepareSkybox(camera->GetViewMatrix(), camera->GetProjectionMatrix(), camera->GetPosition());
+	auto tempVertexBuffer = skybox->GetVertexBuffer();
+	context->IASetVertexBuffers(0, 1, &tempVertexBuffer, &stride, &offset);
+	context->IASetIndexBuffer(skybox->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+
+	context->DrawIndexed(skybox->GetIndexCount(), 0, 0);
+
+	context->OMSetDepthStencilState(NULL, 0);
+}
+
+void Game::DrawSceneBlend(XMFLOAT4 clip)
+{
+}
+
+void Game::DrawParticles(float totalTime)
+{
+	//rendering particle
+	float blend[4] = { 1,1,1,1 };
+	context->OMSetBlendState(particleBlendState, blend, 0xffffffff);
+	context->OMSetDepthStencilState(particleDepth, 0);
+
+	particlePS->SetSamplerState("sampleOptions", samplerState);
+	shipGas->Draw(context, camera, totalTime);
+	shipGas2->Draw(context, camera, totalTime);
+
+	context->OMSetDepthStencilState(0, 0);
+	context->OMSetBlendState(0, blend, 0xffffffff);
+}
+
+void Game::DrawWaterReflection()
+{
+
+}
+
+void Game::RenderShadowMap()
+{
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+
+	//set depth stencil view to render everything to the shadow depth buffer
+//context->ClearRenderTargetView(backBufferRTV, color);
+	context->ClearDepthStencilView(shadowDepthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	context->OMSetRenderTargets(0, nullptr, shadowDepthStencil);
+
+	context->RSSetViewports(1, &shadowViewport);
+	context->RSSetState(shadowRasterizerState);
+
+	/*XMFLOAT3 directionLightPosition;
+	XMFLOAT3 center(0.0f, 0.0f, 0.0f);*/
+	XMFLOAT3 up(0.0f, 1.0f, 0.0f);
+
+	//taking the center of the camera and backing up from the direction of the light
+	//this is the position of the light
+	//XMStoreFloat3(&directionLightPosition, XMLoadFloat3(&center) - XMLoadFloat3(&directionalLight.direction) * 10000.f);
+	//creating the camera look to matrix
+	auto tempLightView = XMMatrixLookAtLH(XMLoadFloat3(&lights[0].position),
+		XMLoadFloat3(&ship->GetPosition()), XMLoadFloat3(&up));
+
+	//storing the light view matrix
+	XMFLOAT4X4 lightView;
+	XMStoreFloat4x4(&lightView, XMMatrixTranspose(tempLightView));
+
+	//calculating projection matrix
+	XMFLOAT4X4 lightProjection;
+	XMMATRIX tempLightProjection = XMMatrixOrthographicLH(100.f, 100.f,
+		0.1f, 1000.0f);
+	XMStoreFloat4x4(&lightProjection, XMMatrixTranspose(tempLightProjection));
+
+	shadowVertexShader->SetShader();
+	context->PSSetShader(nullptr, nullptr, 0);
+
+	for (size_t i = 0; i < entities.size(); i++)
+	{
+		auto tempVertexBuffer = entities[i]->GetMesh()->GetVertexBuffer();
+		shadowVertexShader->SetMatrix4x4("view", lightView);
+		shadowVertexShader->SetMatrix4x4("projection", lightProjection);
+		shadowVertexShader->SetMatrix4x4("worldMatrix", entities[i]->GetModelMatrix());
+		shadowVertexShader->CopyAllBufferData();
+		context->IASetVertexBuffers(0, 1, &tempVertexBuffer, &stride, &offset);
+		context->IASetIndexBuffer(entities[i]->GetMesh()->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+
+		//drawing the entity
+		context->DrawIndexed(entities[i]->GetMesh()->GetIndexCount(), 0, 0);
+	}
+}
+
+void Game::DrawFullScreenQuad(ID3D11ShaderResourceView* texSRV)
+{
+	// First, turn off our buffers, as we'll be generating the vertex
+	// data on the fly in a special vertex shader using the index of each vert
+	context->IASetVertexBuffers(0, 0, 0, 0, 0);
+	context->IASetIndexBuffer(0, DXGI_FORMAT_R32_UINT, 0);
+
+	// Set up the fullscreen quad shaders
+	fullScreenTriangleVS->SetShader();
+	fullScreenTriangleVS->CopyAllBufferData();
+
+	fullScreenTrianglePS->SetShaderResourceView("Pixels", texSRV);
+	fullScreenTrianglePS->SetSamplerState("Sampler", samplerState);
+	fullScreenTrianglePS->SetShader();
+	fullScreenTrianglePS->CopyAllBufferData();
+
+	// Draw
+	context->Draw(3, 0);
+}
+
 
 // --------------------------------------------------------
 // Handle resizing DirectX "stuff" to match the new window size.
@@ -1033,6 +1307,8 @@ void Game::Update(float deltaTime, float totalTime)
 	em2Pos.x += 1.2f;
 	shipGas2->SetPosition(em2Pos);
 
+	water->Update(deltaTime, ship->GetPosition());
+
 
 	//checking for collision
 	for (int i = 0; i < entities.size(); i++)
@@ -1078,56 +1354,27 @@ void Game::Draw(float deltaTime, float totalTime)
 	// Background color (Cornflower Blue in this case) for clearing
 	const float color[4] = { 0.4f, 0.6f, 0.75f, 0.0f };
 
+	context->ClearRenderTargetView(backBufferRTV, color);
+	context->ClearRenderTargetView(waterReflectionRTV, color);
+	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH,1.0f,0);
+	//rendering shadow
+	//RenderShadowMap();
+
+	//rendering the scene without water
+	context->OMSetRenderTargets(1, &waterReflectionRTV, depthStencilView);
+
+	XMFLOAT4 clip = XMFLOAT4(0, 1.0f, 0, 10.f);
+
+	DrawSceneOpaque(clip);
+	DrawSky(clip);
+
+	context->OMSetRenderTargets(1, &backBufferRTV, 0);
+	//rendering full screen quad for reflection
+	DrawFullScreenQuad(waterReflectionSRV);
+
 	//stride of each vertex
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
-
-	//set depth stencil view to render everything to the shadow depth buffer
-	//context->ClearRenderTargetView(backBufferRTV, color);
-	context->ClearDepthStencilView(shadowDepthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-	context->OMSetRenderTargets(0, nullptr, shadowDepthStencil);
-
-	context->RSSetViewports(1, &shadowViewport);
-	context->RSSetState(shadowRasterizerState);
-
-	/*XMFLOAT3 directionLightPosition;
-	XMFLOAT3 center(0.0f, 0.0f, 0.0f);*/
-	XMFLOAT3 up(0.0f, 1.0f, 0.0f);
-
-	//taking the center of the camera and backing up from the direction of the light
-	//this is the position of the light
-	//XMStoreFloat3(&directionLightPosition, XMLoadFloat3(&center) - XMLoadFloat3(&directionalLight.direction) * 10000.f);
-	//creating the camera look to matrix
-	auto tempLightView = XMMatrixLookAtLH(XMLoadFloat3(&lights[0].position), 
-		XMLoadFloat3(&ship->GetPosition()), XMLoadFloat3(&up));
-
-	//storing the light view matrix
-	XMFLOAT4X4 lightView;
-	XMStoreFloat4x4(&lightView, XMMatrixTranspose(tempLightView));
-
-	//calculating projection matrix
-	XMFLOAT4X4 lightProjection;
-	XMMATRIX tempLightProjection = XMMatrixOrthographicLH(100.f,100.f,
-		0.1f,1000.0f);
-	XMStoreFloat4x4(&lightProjection, XMMatrixTranspose(tempLightProjection));
-
-	shadowVertexShader->SetShader();
-	context->PSSetShader(nullptr, nullptr, 0);
-
-	for (size_t i = 0; i < entities.size(); i++)
-	{
-		auto tempVertexBuffer = entities[i]->GetMesh()->GetVertexBuffer();
-		shadowVertexShader->SetMatrix4x4("view", lightView);
-		shadowVertexShader->SetMatrix4x4("projection", lightProjection);
-		shadowVertexShader->SetMatrix4x4("worldMatrix", entities[i]->GetModelMatrix());
-		shadowVertexShader->CopyAllBufferData();
-		context->IASetVertexBuffers(0, 1, &tempVertexBuffer, &stride, &offset);
-		context->IASetIndexBuffer(entities[i]->GetMesh()->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
-
-		//drawing the entity
-		context->DrawIndexed(entities[i]->GetMesh()->GetIndexCount(), 0, 0);
-	}
-
 	
 	// Clear the render target and depth buffer (erases what's on the screen)
 	//  - Do this ONCE PER FRAME
@@ -1143,85 +1390,20 @@ void Game::Draw(float deltaTime, float totalTime)
 	context->RSSetViewports(1, &viewport);
 
 	context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
+	
+	clip = XMFLOAT4(0, 0, 0, 0);
+	DrawSceneOpaque(clip);
 
-	//looping through the entities to draw them
-	for (size_t i = 0; i < entities.size(); i++)
-	{
-		//preparing material for entity
-		entities[i]->GetMaterial()->GetVertexShader()->SetMatrix4x4("lightView", lightView);
-		entities[i]->GetMaterial()->GetVertexShader()->SetMatrix4x4("lightProj", lightProjection);
-		entities[i]->PrepareMaterial(camera->GetViewMatrix(), camera->GetProjectionMatrix());
+	//drawing the water
+	waterPS->SetShaderResourceView("reflectionTexture", waterReflectionSRV);
+	water->Draw(lights[0], skybox->GetSkyboxTexture(), camera, context,deltaTime);
 
-		//adding lights and sending camera position
-		entities[i]->GetMaterial()->GetPixelShader()->SetData("light", &directionalLight, sizeof(DirectionalLight)); //adding directional lights to the scene
-		entities[i]->GetMaterial()->GetPixelShader()->SetData("lights", &lights[0], sizeof(Light)*MAX_LIGHTS);
-		entities[i]->GetMaterial()->GetPixelShader()->SetInt("lightCount",2);
+	DrawSky(clip);
 
-		//entities[i]->GetMaterial()->GetPixelShader()->SetData("light2", &directionalLight2, sizeof(DirectionalLight));
-		entities[i]->GetMaterial()->GetPixelShader()->SetFloat3("cameraPosition",camera->GetPosition());
+	DrawParticles(totalTime);
 
-		entities[i]->GetMaterial()->GetPixelShader()->SetShaderResourceView("cubeMap", skybox->GetSkyboxTexture());
-		entities[i]->GetMaterial()->GetPixelShader()->SetShaderResourceView("celShading", celShadingSRV);
-		entities[i]->GetMaterial()->GetPixelShader()->SetShaderResourceView("irradianceMap", irradienceSRV);
-		entities[i]->GetMaterial()->GetPixelShader()->SetShaderResourceView("shadowMap", shadowSRV);
-		entities[i]->GetMaterial()->GetPixelShader()->SetShaderResourceView("prefilteredMap", prefilteredSRV);
-		entities[i]->GetMaterial()->GetPixelShader()->SetShaderResourceView("environmentBRDF", environmentBrdfSRV);
-		entities[i]->GetMaterial()->GetPixelShader()->SetSamplerState("shadowSampler", shadowSamplerState);
-
-		entities[i]->GetMaterial()->SetPixelShaderData();
-
-		//setting the vertex and index buffer
-		auto tempVertexBuffer = entities[i]->GetMesh()->GetVertexBuffer();
-		context->IASetVertexBuffers(0, 1, &tempVertexBuffer, &stride, &offset);
-		context->IASetIndexBuffer(entities[i]->GetMesh()->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
-
-		//drawing the entity
-		context->DrawIndexed(entities[i]->GetMesh()->GetIndexCount(), 0, 0);
-
-		entities[i]->GetMaterial()->GetPixelShader()->SetShaderResourceView("shadowMap", nullptr);
-	}
-
-
-	//drawing the terrain
-	/*vertexShader->SetMatrix4x4("world", terrain->GetWorldMatrix());
-	vertexShader->SetMatrix4x4("view", camera->GetViewMatrix());
-	vertexShader->SetMatrix4x4("projection", camera->GetProjectionMatrix());
-	pixelShader->SetData("light", &directionalLight, sizeof(DirectionalLight)); //adding directional lights to the scene
-
-	vertexShader->CopyAllBufferData();
-	pixelShader->CopyAllBufferData();
-	vertexShader->SetShader();
-	pixelShader->SetShader();*/
-
-	/*auto tempTerrainVB = terrain->GetVertexBuffer();
-	context->IASetVertexBuffers(0, 1, &tempTerrainVB, &stride, &offset);
-	context->IASetIndexBuffer(terrain->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
-	context->DrawIndexed(511 * 511 * 2*3, 0, 0);*/
-
-	context->OMSetDepthStencilState(dssLessEqual, 0);
-
-	//draw the skybox
-	context->RSSetState(skyRS);
-	skybox->PrepareSkybox(camera->GetViewMatrix(), camera->GetProjectionMatrix(), camera->GetPosition());
-	auto tempVertexBuffer = skybox->GetVertexBuffer();
-	context->IASetVertexBuffers(0, 1, &tempVertexBuffer, &stride, &offset);
-	context->IASetIndexBuffer(skybox->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
-
-	context->DrawIndexed(skybox->GetIndexCount(), 0, 0);
-
-	context->OMSetDepthStencilState(NULL, 0);
-
-	//rendering particle
-	float blend[4] = { 1,1,1,1 };
-	context->OMSetBlendState(particleBlendState, blend, 0xffffffff);
-	context->OMSetDepthStencilState(particleDepth, 0);
-
-	particlePS->SetSamplerState("sampleOptions", samplerState);
-	shipGas->Draw(context, camera,totalTime);
-	shipGas2->Draw(context, camera,totalTime);
-
-	context->OMSetDepthStencilState(0, 0);
-	context->OMSetBlendState(0, blend, 0xffffffff);
+	ID3D11ShaderResourceView* nullSRV[16] = {};
+	context->PSSetShaderResources(0, 16, nullSRV);
 
 	// Present the back buffer to the user
 	//  - Puts the final frame we're drawing into the window so the user can see it
