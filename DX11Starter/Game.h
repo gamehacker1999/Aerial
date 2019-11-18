@@ -208,6 +208,8 @@ private:
 
 	ID3D11ShaderResourceView* goldMetalnessTextureSRV;
 
+	std::shared_ptr<Material> goldMaterial;
+
 	//water textures
 	std::shared_ptr<Water> water;
 	ID3D11ShaderResourceView* waterDiffuse;

@@ -436,12 +436,6 @@ void Game::Init()
 	// Essentially: "What kind of shape should the GPU draw with our data?"
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	CreateIrradianceMaps();
-
-	CreatePrefilteredMaps();
-
-	CreateEnvironmentLUTs();
-
 	InitializeEntities();
 
 	bulletCounter = 0;
@@ -478,6 +472,15 @@ void Game::Init()
 		XMFLOAT4(-2, 2, -2, 2),
 		XMFLOAT3(0.f, -1.f, 0.f), 
 		device, particleVS, particlePS, particleTexture);
+
+	//ID3D11ShaderResourceView* nullSRV[16] = {};
+	//context->PSSetShaderResources(0, 16, nullSRV);
+
+	CreateIrradianceMaps();
+	
+	CreatePrefilteredMaps();
+	
+	CreateEnvironmentLUTs();
 
 }
 
@@ -575,14 +578,14 @@ void Game::CreateBasicGeometry()
 	//CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipMetallic.jpg", 0, &metalnessTextureSRV);
 
 	//trying to load a texture
-	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/BronzeDiffuse.png", 0, &goldTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/GoldDiffuse.png", 0, &goldTextureSRV);
 
 	//trying to load a normalMap
-	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/BronzeNormal.png", 0, &goldNormalTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/GoldNormal.png", 0, &goldNormalTextureSRV);
 
-	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/BronzeRoughness.png", 0, &goldRoughnessTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/GoldRoughness.png", 0, &goldRoughnessTextureSRV);
 
-	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/BronzeMetallic.png", 0, &goldMetalnessTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/GoldMetallic.png", 0, &goldMetalnessTextureSRV);
 
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/waterDiffuse.jpg", 0, &waterDiffuse);
 
@@ -615,7 +618,7 @@ void Game::CreateBasicGeometry()
 	material = std::make_shared<Material>(vertexShader, pbrPixelShader,samplerState,
 		textureSRV, normalTextureSRV,roughnessTextureSRV,metalnessTextureSRV);
 
-	std::shared_ptr<Material> goldMaterial = std::make_shared<Material>(vertexShader, pbrPixelShader, samplerState,
+	goldMaterial = std::make_shared<Material>(vertexShader, pbrPixelShader, samplerState,
 		goldTextureSRV, goldNormalTextureSRV, goldRoughnessTextureSRV, goldMetalnessTextureSRV);
 
 	shipMesh = std::make_shared<Mesh>("../../Assets/Models/building.obj",device);
@@ -638,7 +641,7 @@ void Game::CreateBasicGeometry()
 
 	skybox = std::make_shared<Skybox>();
 	//creating skybox
-	skybox->LoadSkybox(L"../../Assets/Textures/SunnyCubeMap.dds", device, context,samplerStateCube);
+	skybox->LoadSkybox(L"../../Assets/Textures/skybox1.dds", device, context,samplerStateCube);
 
 	D3D11_RASTERIZER_DESC skyRSDesc = {};
 	skyRSDesc.FillMode = D3D11_FILL_SOLID;
@@ -755,7 +758,7 @@ void Game::CreateIrradianceMaps()
 	irradianceViewport.TopLeftX = 0.0f;
 	irradianceViewport.TopLeftY = 0.0f;
 
-	const float color[4] = { 0.6f, 0.6f, 0.6f, 0.0f };
+	const float color[4] = { 1.f, 1.f, 1.f, 0.0f };
 
 	UINT offset = 0;
 	UINT stride = sizeof(Vertex);
@@ -784,6 +787,7 @@ void Game::CreateIrradianceMaps()
 		context->IASetVertexBuffers(0, 1, &tempVertexBuffer, &stride, &offset);
 		context->IASetIndexBuffer(skybox->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 
+		context->RSSetState(skyRS);
 		context->OMSetDepthStencilState(dssLessEqual, 0);
 
 		context->DrawIndexed(skybox->GetIndexCount(), 0, 0);
@@ -919,7 +923,7 @@ void Game::CreatePrefilteredMaps()
 			context->IASetIndexBuffer(skybox->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 
 			context->OMSetDepthStencilState(dssLessEqual, 0);
-
+			context->RSSetState(skyRS);
 			context->DrawIndexed(skybox->GetIndexCount(), 0, 0);
 
 		}
@@ -1261,7 +1265,7 @@ void Game::Update(float deltaTime, float totalTime)
 			ship->GetPosition().z + 30.0f
 		};
 
-		std::shared_ptr<Obstacle> newObstacle = std::make_shared<Obstacle>(obstacleMesh, material);
+		std::shared_ptr<Obstacle> newObstacle = std::make_shared<Obstacle>(obstacleMesh, goldMaterial);
 
 
 		// set position
@@ -1363,6 +1367,7 @@ void Game::Update(float deltaTime, float totalTime)
 // --------------------------------------------------------
 void Game::Draw(float deltaTime, float totalTime)
 {
+	
 	// Background color (Cornflower Blue in this case) for clearing
 	const float color[4] = { 0.4f, 0.6f, 0.75f, 0.0f };
 
@@ -1370,7 +1375,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	context->ClearRenderTargetView(waterReflectionRTV, color);
 	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH,1.0f,0);
 	//rendering shadow
-	//RenderShadowMap();
+	RenderShadowMap();
 
 	//rendering the scene without water
 	context->OMSetRenderTargets(1, &waterReflectionRTV, depthStencilView);
