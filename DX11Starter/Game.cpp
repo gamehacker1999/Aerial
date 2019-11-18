@@ -202,6 +202,10 @@ Game::~Game()
 	if (shadowRasterizerState) { shadowRasterizerState->Release(); }
 	if (shadowSamplerState) { shadowSamplerState->Release(); }
 	if (shadowSRV) shadowSRV->Release();
+	if(ppSRV) ppSRV->Release();
+	if(ppRTV) ppRTV->Release();
+	if (ppVS) delete ppVS;
+	if (ppPS) delete ppPS;
 
 
 	textureSRV->Release();
@@ -428,6 +432,40 @@ void Game::Init()
 
 	waterReflectionTexture2D->Release();
 
+	// Post process
+	D3D11_TEXTURE2D_DESC ppTexDesc = {};
+	ppTexDesc.Width = width;
+	ppTexDesc.Height = height;
+	ppTexDesc.ArraySize = 1;
+	ppTexDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	ppTexDesc.CPUAccessFlags = 0;
+	ppTexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	ppTexDesc.MipLevels = 1;
+	ppTexDesc.MiscFlags = 0;
+	ppTexDesc.SampleDesc.Count = 1;
+	ppTexDesc.SampleDesc.Quality = 0;
+	ppTexDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	ID3D11Texture2D* ppTexture;
+	device->CreateTexture2D(&ppTexDesc, 0, &ppTexture);
+
+	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.Format = ppTexDesc.Format;
+	rtvDesc.Texture2D.MipSlice = 0;
+	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+
+	device->CreateRenderTargetView(ppTexture, &rtvDesc, &ppRTV);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = ppTexDesc.Format;
+	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+
+	device->CreateShaderResourceView(ppTexture, &srvDesc, &ppSRV);
+
+	ppTexture->Release();
+
 	//terrain = std::make_shared<Terrain>();
 	//terrain->LoadHeightMap(device,"../../Assets/Textures/terrain.raw" );
 
@@ -543,6 +581,12 @@ void Game::LoadShaders()
 
 	fullScreenTrianglePS = new SimplePixelShader(device, context);
 	fullScreenTrianglePS->LoadShaderFile(L"FullScreenTrianglePS.cso");
+
+	ppVS = new SimpleVertexShader(device, context);
+	ppVS->LoadShaderFile(L"PostProcessVS.cso");
+
+	ppPS = new SimplePixelShader(device, context);
+	ppPS->LoadShaderFile(L"PostProcessPS.cso");
 }
 
 // --------------------------------------------------------
@@ -1040,6 +1084,7 @@ void Game::RestartGame()
 
 void Game::DrawSceneOpaque(XMFLOAT4 clip)
 {
+	context->OMSetRenderTargets(1, &ppRTV, depthStencilView);
 	// Set buffers in the input assembler
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
@@ -1368,6 +1413,7 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	context->ClearRenderTargetView(backBufferRTV, color);
 	context->ClearRenderTargetView(waterReflectionRTV, color);
+	context->ClearRenderTargetView(ppRTV, color);
 	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH,1.0f,0);
 	//rendering shadow
 	//RenderShadowMap();
@@ -1413,6 +1459,29 @@ void Game::Draw(float deltaTime, float totalTime)
 	DrawSky(clip);
 
 	DrawParticles(totalTime);
+
+	//Post-processing
+	context->OMSetRenderTargets(1, &backBufferRTV, 0);
+
+	// Set up post process shaders
+	ppVS->SetShader();
+
+	ppPS->SetShaderResourceView("Pixels", ppSRV);
+	ppPS->SetSamplerState("Sampler", samplerState);
+	ppPS->SetShader();
+
+	ppPS->SetInt("blurAmount", 5);
+	ppPS->SetFloat("pixelWidth", 1.0f / width);
+	ppPS->SetFloat("pixelHeight", 1.0f / height);
+	ppPS->CopyAllBufferData();
+
+	// Turn OFF vertex and index buffers
+	ID3D11Buffer* nothing = 0;
+	context->IASetIndexBuffer(0, DXGI_FORMAT_R32_UINT, 0);
+	context->IASetVertexBuffers(0, 1, &nothing, &stride, &offset);
+
+	// Draw exactly 3 vertices for our "full screen triangle"
+	context->Draw(3, 0);
 
 	ID3D11ShaderResourceView* nullSRV[16] = {};
 	context->PSSetShaderResources(0, 16, nullSRV);

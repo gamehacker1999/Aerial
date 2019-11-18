@@ -65,6 +65,12 @@ private:
 	//pbr pixel shader
 	SimplePixelShader* pbrPixelShader;
 
+	//Post process
+	ID3D11RenderTargetView* ppRTV;
+	ID3D11ShaderResourceView* ppSRV;
+	SimpleVertexShader* ppVS;
+	SimplePixelShader* ppPS;
+
 	//vertexshader for shadows
 	SimpleVertexShader* shadowVertexShader;
 	SimplePixelShader* shadowPixelShader;
