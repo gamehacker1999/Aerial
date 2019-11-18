@@ -202,8 +202,10 @@ Game::~Game()
 	if (shadowRasterizerState) { shadowRasterizerState->Release(); }
 	if (shadowSamplerState) { shadowSamplerState->Release(); }
 	if (shadowSRV) shadowSRV->Release();
-	if(ppSRV) ppSRV->Release();
-	if(ppRTV) ppRTV->Release();
+
+	// Clean up post process
+	if (ppSRV) ppSRV->Release();
+	if (ppRTV) ppRTV->Release();
 	if (ppVS) delete ppVS;
 	if (ppPS) delete ppPS;
 
@@ -432,38 +434,41 @@ void Game::Init()
 
 	waterReflectionTexture2D->Release();
 
-	// Post process
-	D3D11_TEXTURE2D_DESC ppTexDesc = {};
-	ppTexDesc.Width = width;
-	ppTexDesc.Height = height;
-	ppTexDesc.ArraySize = 1;
-	ppTexDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-	ppTexDesc.CPUAccessFlags = 0;
-	ppTexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	ppTexDesc.MipLevels = 1;
-	ppTexDesc.MiscFlags = 0;
-	ppTexDesc.SampleDesc.Count = 1;
-	ppTexDesc.SampleDesc.Quality = 0;
-	ppTexDesc.Usage = D3D11_USAGE_DEFAULT;
+	// Create post process resources -----------------------------------------
+	D3D11_TEXTURE2D_DESC textureDesc = {};
+	textureDesc.Width = width;
+	textureDesc.Height = height;
+	textureDesc.ArraySize = 1;
+	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	textureDesc.CPUAccessFlags = 0;
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.MipLevels = 1;
+	textureDesc.MiscFlags = 0;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
 
 	ID3D11Texture2D* ppTexture;
-	device->CreateTexture2D(&ppTexDesc, 0, &ppTexture);
+	device->CreateTexture2D(&textureDesc, 0, &ppTexture);
 
+	// Create the Render Target View
 	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-	rtvDesc.Format = ppTexDesc.Format;
+	rtvDesc.Format = textureDesc.Format;
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 
 	device->CreateRenderTargetView(ppTexture, &rtvDesc, &ppRTV);
 
+	// Create the Shader Resource View
 	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Format = ppTexDesc.Format;
+	srvDesc.Format = textureDesc.Format;
 	srvDesc.Texture2D.MipLevels = 1;
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 
 	device->CreateShaderResourceView(ppTexture, &srvDesc, &ppSRV);
 
+	// We don't need the texture reference itself no mo'
 	ppTexture->Release();
 
 	//terrain = std::make_shared<Terrain>();
@@ -582,6 +587,7 @@ void Game::LoadShaders()
 	fullScreenTrianglePS = new SimplePixelShader(device, context);
 	fullScreenTrianglePS->LoadShaderFile(L"FullScreenTrianglePS.cso");
 
+	// Post process shaders
 	ppVS = new SimpleVertexShader(device, context);
 	ppVS->LoadShaderFile(L"PostProcessVS.cso");
 
@@ -599,24 +605,14 @@ void Game::CreateBasicGeometry()
 	entities.reserve(100);
 
 	//trying to load a texture
-	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/building.png", 0, &textureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipDiffuse.jpg",0,&textureSRV);
 
 	//trying to load a normalMap
-	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingNormal.png", 0, &normalTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipNormal.jpg", 0, &normalTextureSRV);
 
-	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingRoughness.png", 0, &roughnessTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipRoughness.jpg", 0, &roughnessTextureSRV);
 
-	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingMetal.png", 0, &metalnessTextureSRV);
-
-	////trying to load a texture
-	//CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipDiffuse.jpg",0,&textureSRV);
-
-	////trying to load a normalMap
-	//CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipNormal.jpg", 0, &normalTextureSRV);
-
-	//CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipRoughness.jpg", 0, &roughnessTextureSRV);
-
-	//CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipMetallic.jpg", 0, &metalnessTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipMetallic.jpg", 0, &metalnessTextureSRV);
 
 	//trying to load a texture
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/BronzeDiffuse.png", 0, &goldTextureSRV);
@@ -662,8 +658,7 @@ void Game::CreateBasicGeometry()
 	std::shared_ptr<Material> goldMaterial = std::make_shared<Material>(vertexShader, pbrPixelShader, samplerState,
 		goldTextureSRV, goldNormalTextureSRV, goldRoughnessTextureSRV, goldMetalnessTextureSRV);
 
-	shipMesh = std::make_shared<Mesh>("../../Assets/Models/building.obj",device);
-	//shipMesh = std::make_shared<Mesh>("../../Assets/Models/ship.obj",device);
+	shipMesh = std::make_shared<Mesh>("../../Assets/Models/ship.obj",device);
 	std::shared_ptr<Mesh> object = std::make_shared<Mesh>("../../Assets/Models/cube.obj", device);
 	obstacleMesh = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
 	bulletMesh = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
@@ -695,7 +690,6 @@ void Game::InitializeEntities()
 	ship = std::make_shared<Ship>(shipMesh, material);
 	ship->UseRigidBody();
 	ship->SetTag("Player");
-	ship->SetScale(XMFLOAT3(0.1f, 0.1f, 0.1f));
 	entities.emplace_back(ship);
 
 	auto shipOrientation = XMQuaternionRotationAxis(XMVectorSet(0, 1, 0, 0), 3.14159f);
@@ -1412,7 +1406,6 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	context->ClearRenderTargetView(backBufferRTV, color);
 	context->ClearRenderTargetView(waterReflectionRTV, color);
-	context->ClearRenderTargetView(ppRTV, color);
 	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH,1.0f,0);
 	//rendering shadow
 	//RenderShadowMap();
@@ -1443,11 +1436,13 @@ void Game::Draw(float deltaTime, float totalTime)
 		1.0f,
 		0);
 
+
 	context->RSSetState(nullptr);
 	context->RSSetViewports(1, &viewport);
 
 	context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
-	
+	context->OMSetRenderTargets(1, &ppRTV, depthStencilView);
+
 	clip = XMFLOAT4(0, 0, 0, 0);
 	DrawSceneOpaque(clip);
 
@@ -1459,7 +1454,7 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	DrawParticles(totalTime);
 
-	//Post-processing
+	//Post process
 	context->OMSetRenderTargets(1, &backBufferRTV, 0);
 
 	// Set up post process shaders
@@ -1469,7 +1464,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	ppPS->SetSamplerState("Sampler", samplerState);
 	ppPS->SetShader();
 
-	ppPS->SetInt("blurAmount", 5);
+	ppPS->SetInt("blurAmount", 100);
 	ppPS->SetFloat("pixelWidth", 1.0f / width);
 	ppPS->SetFloat("pixelHeight", 1.0f / height);
 	ppPS->CopyAllBufferData();

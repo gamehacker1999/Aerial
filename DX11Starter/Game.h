@@ -65,15 +65,15 @@ private:
 	//pbr pixel shader
 	SimplePixelShader* pbrPixelShader;
 
-	//Post process
+	//vertexshader for shadows
+	SimpleVertexShader* shadowVertexShader;
+	SimplePixelShader* shadowPixelShader;
+
+	//post process shaders, rtv and srv
 	ID3D11RenderTargetView* ppRTV;
 	ID3D11ShaderResourceView* ppSRV;
 	SimpleVertexShader* ppVS;
 	SimplePixelShader* ppPS;
-
-	//vertexshader for shadows
-	SimpleVertexShader* shadowVertexShader;
-	SimplePixelShader* shadowPixelShader;
 
 	// The matrices to go from model space to screen space
 	DirectX::XMFLOAT4X4 worldMatrix;
