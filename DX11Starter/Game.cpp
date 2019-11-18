@@ -560,7 +560,7 @@ void Game::CreateBasicGeometry()
 	//trying to load a normalMap
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingNormal.png", 0, &normalTextureSRV);
 
-	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingRoughness.png", 0, &roughnessTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingTest.png", 0, &roughnessTextureSRV);
 
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingMetal.png", 0, &metalnessTextureSRV);
 
