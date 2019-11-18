@@ -562,7 +562,7 @@ void Game::CreateBasicGeometry()
 
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingRoughness.png", 0, &roughnessTextureSRV);
 
-	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingRoughness.png", 0, &metalnessTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingMetal.png", 0, &metalnessTextureSRV);
 
 	////trying to load a texture
 	//CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipDiffuse.jpg",0,&textureSRV);
