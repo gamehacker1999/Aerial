@@ -773,7 +773,7 @@ void Game::CreateIrradianceMaps()
 		context->IASetIndexBuffer(skybox->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 
 		context->OMSetDepthStencilState(dssLessEqual, 0);
-
+		context->RSSetState(skyRS);
 		context->DrawIndexed(skybox->GetIndexCount(), 0, 0);
 
 
@@ -907,6 +907,7 @@ void Game::CreatePrefilteredMaps()
 			context->IASetIndexBuffer(skybox->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 
 			context->OMSetDepthStencilState(dssLessEqual, 0);
+			context->RSSetState(skyRS);
 
 			context->DrawIndexed(skybox->GetIndexCount(), 0, 0);
 
