@@ -35,9 +35,17 @@ void Water::Update(float deltaTime,XMFLOAT3 shipPos)
 void Water::Draw(Light lights, ID3D11ShaderResourceView* cubeMap, std::shared_ptr<Camera> camera,
 	ID3D11DeviceContext* context, float deltaTime)
 {
+
+	static float totalTime = 0;
+	totalTime += deltaTime;
+
 	waterVS->SetMatrix4x4("world", worldMat);
 	waterVS->SetMatrix4x4("view", camera->GetViewMatrix());
 	waterVS->SetMatrix4x4("projection", camera->GetProjectionMatrix());
+	waterVS->SetFloat4("waveA", XMFLOAT4(1.0f, 1.0f, 0.3f, 2.0f));
+	waterVS->SetFloat4("waveB", XMFLOAT4(0, 1, 0.3f, 2.0f));
+	waterVS->SetFloat("speed", 0.60f);
+	waterVS->SetFloat("dt", totalTime);
 	waterVS->CopyAllBufferData();
 	waterVS->SetShader();
 
@@ -51,10 +59,13 @@ void Water::Draw(Light lights, ID3D11ShaderResourceView* cubeMap, std::shared_pt
 	waterPS->SetFloat("scrollY", scrollY);
 	waterPS->SetData("dirLight", &lights, sizeof(Light));
 	waterPS->SetFloat3("cameraPos", camera->GetPosition());
+	waterPS->SetMatrix4x4("view", camera->GetViewMatrix());
+
 	waterPS->SetShaderResourceView("waterTexture", waterTex);
 	waterPS->SetShaderResourceView("normalTexture1", waterNormal1);
 	waterPS->SetShaderResourceView("normalTexture2", waterNormal2);
 	waterPS->SetSamplerState("sampleOptions", samplerState);
+
 	waterPS->CopyAllBufferData();
 	waterPS->SetShader();
 

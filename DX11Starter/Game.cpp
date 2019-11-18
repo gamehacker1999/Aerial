@@ -470,7 +470,7 @@ void Game::Init()
 		0.8f, 
 		0.03f, 
 		XMFLOAT4(1, 1.0f, 1.0f, 1.0f),
-		XMFLOAT4(1, 0.6f, 0.1f, 0.f), 
+		XMFLOAT4(1, 0.1f, 0.1f, 0.f), 
 		XMFLOAT3(0, 0, -1.f), 
 		XMFLOAT3(0.2f, 0.2f, 0.2f),
 		ship->GetPosition(), 
@@ -1368,6 +1368,7 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	DrawSceneOpaque(clip);
 	DrawSky(clip);
+	DrawParticles(totalTime);
 
 	context->OMSetRenderTargets(1, &backBufferRTV, 0);
 	//rendering full screen quad for reflection

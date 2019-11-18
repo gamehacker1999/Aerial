@@ -29,6 +29,7 @@ cbuffer LightData: register(b0)
 	float scrollX;
 	float scrollY;
 	float3 cameraPosition;
+	matrix view;
 	Light dirLight;
 	//Light lights[MAX_LIGHTS];
 	//int lightCount;
@@ -78,8 +79,6 @@ float4 main(VertexToPixel input) : SV_TARGET
 
 	float2 reflectionTexCoord = float2(input.screenUV.x, -input.screenUV.y);
 
-	float4 reflectionColor = reflectionTexture.Sample(sampleOptions, reflectionTexCoord);
-
 	float2 scrollUV1 = float2(input.uv.x + scrollX,input.uv.y);
 	float3 normal1 = normalTexture1.Sample(sampleOptions, scrollUV1).rgb;
 	//unpacking the normal
@@ -110,9 +109,17 @@ float4 main(VertexToPixel input) : SV_TARGET
 	I = normalize(I); //incident ray
 	float3 reflected = reflect(I, finalNormal);
 
+	//getting the reflection direction in view space
+	float2 reflectedView = mul(float4(reflected,0.0f), view).xy*0.01f;
+	reflectedView.x*=-1;
+	float4 reflectionColor = reflectionTexture.Sample(sampleOptions, reflectionTexCoord+reflectedView);
+
 	float4 reflectedColor = cubeMap.Sample(sampleOptions, reflected);
 
-	float4 lightingColor = CalculateLight(dirLight, finalNormal, input);
+	float4 lightingColor = CalculateLight(dirLight, N, input);
 
-	return lightingColor*surfaceColor;
+	float4 totalColor = surfaceColor * lightingColor;
+
+	return totalColor;
+	//return lerp(totalColor,reflectionColor,saturate(dot(finalNormal,-I)));
 }

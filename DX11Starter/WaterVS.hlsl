@@ -5,10 +5,21 @@ cbuffer externalData : register(b0)
 	matrix world;
 	matrix view;
 	float4 clipDistance;
+	/*float amplitude;
+	float steepness;
+	float wavelength;
+	float speed;*/
+	float dt;
+	float4 waveA;
+	float4 waveB;
+	float2 direction;
 	matrix projection;
 	matrix lightView;
 	matrix lightProj;
 };
+
+
+static const float PI = 3.14159f;
 
 // Struct representing a single vertex worth of data
 struct VertexShaderInput
@@ -34,6 +45,39 @@ struct VertexToPixel
 	noperspective float2 screenUV		: VPOS;
 };
 
+//function to calculate gerstner waves given a wave
+float3 GerstnerWave(float4 wave, float3 pos, inout float3 tangent, inout float3 binormal, float dt)
+{
+	float steepness = wave.z;
+	float wavelength = wave.w;
+
+	float k = 2 * PI / wavelength;
+	//modifying the y value and creating gerstner waves
+	float c = sqrt(9.8f / k); //phase speed
+	float2 d = normalize(wave.xy);
+	float a = steepness / k;
+	float f = k * (dot(d, pos.xz) - c / 2 * dt);
+
+	tangent += float3(
+		 - d.x * d.x * (steepness * sin(f)),
+		d.x * (steepness * cos(f)),
+		-d.x * d.y * (steepness * sin(f)
+			)
+		);
+
+	binormal += float3(
+		-d.x * d.y * (steepness * sin(f)),
+		d.y * (steepness * cos(f)),
+		 - d.y * d.y * (steepness * sin(f))
+		);
+
+	return float3(
+		d.x * (a * cos(f)),
+		a * sin(f),
+		d.y * (a * cos(f))
+	);
+}
+
 // --------------------------------------------------------
 // The entry point (main method) for our vertex shader
 // 
@@ -49,6 +93,14 @@ VertexToPixel main(VertexShaderInput input)
 	// First we multiply them together to get a single matrix which represents
 	// all of those transformations (world to view to projection space)
 	matrix worldViewProj = mul(mul(world, view), projection);
+
+	float3 pos = input.position;
+	float3 tangent = float3(1.0f, 0, 0);
+	float3 binormal = float3(0.0f, 0, 1.0f);
+	pos += GerstnerWave(waveA,input.position,tangent,binormal,dt);
+	pos += GerstnerWave(waveB, input.position, tangent, binormal, dt);
+	input.position = pos;
+	input.normal = normalize(cross(binormal,tangent));
 
 	// The result is essentially the position (XY) of the vertex on our 2D 
 	// screen and the distance (Z) from the camera (the "depth" of the pixel)
