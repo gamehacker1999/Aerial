@@ -555,14 +555,24 @@ void Game::CreateBasicGeometry()
 	entities.reserve(100);
 
 	//trying to load a texture
-	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipDiffuse.jpg",0,&textureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/building.png", 0, &textureSRV);
 
 	//trying to load a normalMap
-	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipNormal.jpg", 0, &normalTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingNormal.png", 0, &normalTextureSRV);
 
-	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipRoughness.jpg", 0, &roughnessTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingRoughness.png", 0, &roughnessTextureSRV);
 
-	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipMetallic.jpg", 0, &metalnessTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingRoughness.png", 0, &metalnessTextureSRV);
+
+	////trying to load a texture
+	//CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipDiffuse.jpg",0,&textureSRV);
+
+	////trying to load a normalMap
+	//CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipNormal.jpg", 0, &normalTextureSRV);
+
+	//CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipRoughness.jpg", 0, &roughnessTextureSRV);
+
+	//CreateWICTextureFromFile(device, context, L"../../Assets/Textures/shipMetallic.jpg", 0, &metalnessTextureSRV);
 
 	//trying to load a texture
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/BronzeDiffuse.png", 0, &goldTextureSRV);
@@ -608,7 +618,8 @@ void Game::CreateBasicGeometry()
 	std::shared_ptr<Material> goldMaterial = std::make_shared<Material>(vertexShader, pbrPixelShader, samplerState,
 		goldTextureSRV, goldNormalTextureSRV, goldRoughnessTextureSRV, goldMetalnessTextureSRV);
 
-	shipMesh = std::make_shared<Mesh>("../../Assets/Models/ship.obj",device);
+	shipMesh = std::make_shared<Mesh>("../../Assets/Models/building.obj",device);
+	//shipMesh = std::make_shared<Mesh>("../../Assets/Models/ship.obj",device);
 	std::shared_ptr<Mesh> object = std::make_shared<Mesh>("../../Assets/Models/cube.obj", device);
 	obstacleMesh = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
 	bulletMesh = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
@@ -640,6 +651,7 @@ void Game::InitializeEntities()
 	ship = std::make_shared<Ship>(shipMesh, material);
 	ship->UseRigidBody();
 	ship->SetTag("Player");
+	ship->SetScale(XMFLOAT3(0.1f, 0.1f, 0.1f));
 	entities.emplace_back(ship);
 
 	auto shipOrientation = XMQuaternionRotationAxis(XMVectorSet(0, 1, 0, 0), 3.14159f);
