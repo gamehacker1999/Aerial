@@ -1440,7 +1440,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	context->RSSetState(nullptr);
 	context->RSSetViewports(1, &viewport);
 
-	context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
+	//context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
 	context->OMSetRenderTargets(1, &ppRTV, depthStencilView);
 
 	clip = XMFLOAT4(0, 0, 0, 0);
