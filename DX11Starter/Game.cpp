@@ -1084,7 +1084,6 @@ void Game::RestartGame()
 
 void Game::DrawSceneOpaque(XMFLOAT4 clip)
 {
-	context->OMSetRenderTargets(1, &ppRTV, depthStencilView);
 	// Set buffers in the input assembler
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
