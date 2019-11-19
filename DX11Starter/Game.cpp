@@ -97,6 +97,9 @@ Game::~Game()
 	if (pbrPixelShader)
 		delete pbrPixelShader;
 
+	if (pbrRimLightingShader)
+		delete pbrRimLightingShader;
+
 	if (samplerState)
 		samplerState->Release();
 
@@ -543,6 +546,9 @@ void Game::LoadShaders()
 
 	fullScreenTrianglePS = new SimplePixelShader(device, context);
 	fullScreenTrianglePS->LoadShaderFile(L"FullScreenTrianglePS.cso");
+
+	pbrRimLightingShader = new SimplePixelShader(device, context);
+	pbrRimLightingShader->LoadShaderFile(L"PBRRimLighting.cso");
 }
 
 // --------------------------------------------------------
@@ -606,6 +612,9 @@ void Game::CreateBasicGeometry()
 		textureSRV, normalTextureSRV,roughnessTextureSRV,metalnessTextureSRV);
 
 	std::shared_ptr<Material> goldMaterial = std::make_shared<Material>(vertexShader, pbrPixelShader, samplerState,
+		goldTextureSRV, goldNormalTextureSRV, goldRoughnessTextureSRV, goldMetalnessTextureSRV);
+
+	obstacleMat = std::make_shared<Material>(vertexShader, pbrRimLightingShader, samplerState,
 		goldTextureSRV, goldNormalTextureSRV, goldRoughnessTextureSRV, goldMetalnessTextureSRV);
 
 	shipMesh = std::make_shared<Mesh>("../../Assets/Models/ship.obj",device);
@@ -1252,7 +1261,7 @@ void Game::Update(float deltaTime, float totalTime)
 			ship->GetPosition().z + 30.0f
 		};
 
-		std::shared_ptr<Obstacle> newObstacle = std::make_shared<Obstacle>(obstacleMesh, material);
+		std::shared_ptr<Obstacle> newObstacle = std::make_shared<Obstacle>(obstacleMesh, obstacleMat);
 
 
 		// set position

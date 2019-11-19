@@ -177,6 +177,10 @@ private:
 	//so i can give the obstacles textures
 	std::shared_ptr<Mesh> sphere;
 	std::shared_ptr<Material> material;
+	std::shared_ptr<Material> obstacleMat;
+
+	//rim lighting shader
+	SimplePixelShader* pbrRimLightingShader;
 
 	//particles
 	SimplePixelShader* particlePS;
