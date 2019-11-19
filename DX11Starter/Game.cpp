@@ -962,6 +962,8 @@ void Game::CreateEnvironmentLUTs()
 	std::shared_ptr<Mesh> quad = std::make_shared<Mesh>("../../Assets/Models/quad.obj", device);
 
 	const float color[4] = { 0.6f, 0.6f, 0.6f, 0.0f };
+	context->OMSetDepthStencilState(NULL, 0);
+	context->RSSetState(NULL);
 
 	UINT offset = 0;
 	UINT stride = sizeof(Vertex);
@@ -994,7 +996,7 @@ void Game::CreateEnvironmentLUTs()
 
 	//vertexShader->CopyAllBufferData();
 	//vertexShader->SetShader();
-
+	
 	integrationBRDFPS->SetShader();
 	fullScreenTriangleVS->SetShader();
 
@@ -1359,12 +1361,12 @@ void Game::Draw(float deltaTime, float totalTime)
 	context->ClearRenderTargetView(waterReflectionRTV, color);
 	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH,1.0f,0);
 	//rendering shadow
-	//RenderShadowMap();
+	RenderShadowMap();
 
 	//rendering the scene without water
 	context->OMSetRenderTargets(1, &waterReflectionRTV, depthStencilView);
 
-	XMFLOAT4 clip = XMFLOAT4(0, 1.0f, 0, 10.f);
+	XMFLOAT4 clip = XMFLOAT4(0, 1.0f, 0, -10.f);
 
 	DrawSceneOpaque(clip);
 	DrawSky(clip);
