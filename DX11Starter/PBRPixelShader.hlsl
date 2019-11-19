@@ -161,6 +161,7 @@ float ShadowCalculation(DirectionalLight light, float2 shadowUV, float lightDept
 
 float4 main(VertexToPixel input) : SV_TARGET
 {
+	//clip(input.clip);
 	//sampling the diffuse texture
 	float4 surfaceColor = diffuseTexture.Sample(basicSampler,input.uv);
 

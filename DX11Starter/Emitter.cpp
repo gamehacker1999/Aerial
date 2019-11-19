@@ -153,7 +153,7 @@ void Emitter::UpdateParticles(float deltaTime, float currentTime)
 
 }
 
-void Emitter::Draw(ID3D11DeviceContext* context, std::shared_ptr<Camera> camera,float currentTime)
+void Emitter::Draw(ID3D11DeviceContext* context, XMFLOAT4X4 view, XMFLOAT4X4 projection, float currentTime)
 {
 	//mapping the data so that gpu cannot write to it
 	D3D11_MAPPED_SUBRESOURCE mapped = {};
@@ -175,8 +175,8 @@ void Emitter::Draw(ID3D11DeviceContext* context, std::shared_ptr<Camera> camera,
 	context->IASetVertexBuffers(0, 1, &nullBuffer, &stride, &offset);
 
 	//setting the view and projection matrix
-	vs->SetMatrix4x4("view", camera->GetViewMatrix());
-	vs->SetMatrix4x4("projection", camera->GetProjectionMatrix());
+	vs->SetMatrix4x4("view", view);
+	vs->SetMatrix4x4("projection", projection);
 
 	vs->SetFloat3("acceleration", emitterAcceleration);
 	vs->SetFloat4("startColor", startColor);

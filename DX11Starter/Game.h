@@ -52,7 +52,7 @@ private:
 	void DrawSceneOpaque(XMFLOAT4 clip);
 	void DrawSky(XMFLOAT4 clip);
 	void DrawSceneBlend(XMFLOAT4 clip);
-	void DrawParticles(float totalTime);
+	void DrawParticles(float totalTime, XMFLOAT4 clip);
 	void DrawWaterReflection();
 	void RenderShadowMap();
 	void DrawFullScreenQuad(ID3D11ShaderResourceView* texSRV);
@@ -222,6 +222,7 @@ private:
 	ID3D11ShaderResourceView* waterReflectionSRV;
 	ID3D11RenderTargetView* waterReflectionRTV;
 	SimplePixelShader* fullScreenTrianglePS;
+	bool reflect;
 
 	//loading cel shading
 

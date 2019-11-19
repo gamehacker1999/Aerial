@@ -29,7 +29,7 @@ public:
 
 	void Update(float deltaTime, XMFLOAT3 shipPos);
 
-	void Draw(Light lights, ID3D11ShaderResourceView* cubeMap,std::shared_ptr<Camera> camera, 
-		ID3D11DeviceContext* context, float deltaTime);
+	void Draw(Light lights, ID3D11ShaderResourceView* cubeMap, std::shared_ptr<Camera> camera,
+		ID3D11DeviceContext* context, float deltaTime, ID3D11SamplerState* waterSampler);
 };
 

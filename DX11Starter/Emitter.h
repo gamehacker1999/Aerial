@@ -37,7 +37,7 @@ public:
 	void SetAcceleration(XMFLOAT3 acel);
 
 	void UpdateParticles(float deltaTime, float currentTime);
-	void Draw(ID3D11DeviceContext* context, std::shared_ptr<Camera> camera,float currentTime);
+	void Draw(ID3D11DeviceContext* context, XMFLOAT4X4 view, XMFLOAT4X4 projection,float currentTime);
 
 	int particlesPerSecond;
 	float secondsPerParticle;
