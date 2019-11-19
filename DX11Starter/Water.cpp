@@ -23,6 +23,7 @@ void Water::Update(float deltaTime,XMFLOAT3 shipPos)
 	XMFLOAT3 curPos = shipPos;
 	curPos.y = -10;
 	curPos.z += 30;
+	curPos.z += 30;
 	curPos.x = 0;
 	XMFLOAT3 scale = XMFLOAT3(10.f, 10.f, 10.f);
 	XMMATRIX matTrans = XMMatrixTranslationFromVector(XMLoadFloat3(&curPos));
@@ -33,7 +34,7 @@ void Water::Update(float deltaTime,XMFLOAT3 shipPos)
 }
 
 void Water::Draw(Light lights, ID3D11ShaderResourceView* cubeMap, std::shared_ptr<Camera> camera,
-	ID3D11DeviceContext* context, float deltaTime)
+	ID3D11DeviceContext* context, float deltaTime, ID3D11SamplerState* waterSampler)
 {
 
 	static float totalTime = 0;
@@ -65,6 +66,8 @@ void Water::Draw(Light lights, ID3D11ShaderResourceView* cubeMap, std::shared_pt
 	waterPS->SetShaderResourceView("normalTexture1", waterNormal1);
 	waterPS->SetShaderResourceView("normalTexture2", waterNormal2);
 	waterPS->SetSamplerState("sampleOptions", samplerState);
+	waterPS->SetSamplerState("waterSampleOptions", waterSampler);
+
 
 	waterPS->CopyAllBufferData();
 	waterPS->SetShader();

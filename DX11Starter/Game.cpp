@@ -417,13 +417,13 @@ void Game::Init()
 	device->CreateTexture2D(&waterReflectionTexDesc, 0, &waterReflectionTexture2D);
 
 	D3D11_RENDER_TARGET_VIEW_DESC waterReflectionRTVDesc = {};
-	waterReflectionRTVDesc.Format = waterReflectionRTVDesc.Format;
+	waterReflectionRTVDesc.Format = waterReflectionTexDesc.Format;
 	waterReflectionRTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 	waterReflectionRTVDesc.Texture2D.MipSlice = 0;
 	device->CreateRenderTargetView(waterReflectionTexture2D, &waterReflectionRTVDesc, &waterReflectionRTV);
 
 	D3D11_SHADER_RESOURCE_VIEW_DESC waterReflectionSRVDesc = {};
-	waterReflectionSRVDesc.Format = waterReflectionRTVDesc.Format;
+	waterReflectionSRVDesc.Format = waterReflectionTexDesc.Format;
 	waterReflectionSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 	waterReflectionSRVDesc.Texture2D.MipLevels = 1;
 	waterReflectionSRVDesc.Texture2D.MostDetailedMip = 0;
@@ -1063,13 +1063,22 @@ void Game::DrawSceneOpaque(XMFLOAT4 clip)
 		0.1f, 1000.0f);
 	XMStoreFloat4x4(&lightProjection, XMMatrixTranspose(tempLightProjection));
 
+	auto view = camera->GetViewMatrix();
+
+	if (reflect)
+	{
+		XMMATRIX reflectedMatrix = XMMatrixReflect(XMLoadFloat4(&clip));
+		XMMATRIX tempView = XMMatrixMultiply(reflectedMatrix,XMLoadFloat4x4(&view));
+		XMStoreFloat4x4(&view, tempView);
+	}
+
 	for (size_t i = 0; i < entities.size(); i++)
 	{
 		//preparing material for entity
 		entities[i]->GetMaterial()->GetVertexShader()->SetMatrix4x4("lightView", lightView);
 		entities[i]->GetMaterial()->GetVertexShader()->SetMatrix4x4("lightProj", lightProjection);
-		entities[i]->GetMaterial()->GetVertexShader()->SetFloat4("clipDistance", XMFLOAT4(0, 0, 0, 0));
-		entities[i]->PrepareMaterial(camera->GetViewMatrix(), camera->GetProjectionMatrix());
+		entities[i]->GetMaterial()->GetVertexShader()->SetFloat4("clipDistance", clip);
+		entities[i]->PrepareMaterial(view, camera->GetProjectionMatrix());
 
 		//adding lights and sending camera position
 		entities[i]->GetMaterial()->GetPixelShader()->SetData("light", &directionalLight, sizeof(DirectionalLight)); //adding directional lights to the scene
@@ -1108,9 +1117,18 @@ void Game::DrawSky(XMFLOAT4 clip)
 
 	context->OMSetDepthStencilState(dssLessEqual, 0);
 
+	auto view = camera->GetViewMatrix();
+
+	/*if (reflect)
+	{
+		XMMATRIX reflectedMatrix = XMMatrixReflect(XMLoadFloat4(&clip));
+		XMMATRIX tempView = XMMatrixMultiply(reflectedMatrix, XMLoadFloat4x4(&view));
+		XMStoreFloat4x4(&view, tempView);
+	}*/
+
 	//draw the skybox
 	context->RSSetState(skyRS);
-	skybox->PrepareSkybox(camera->GetViewMatrix(), camera->GetProjectionMatrix(), camera->GetPosition());
+	skybox->PrepareSkybox(view, camera->GetProjectionMatrix(), camera->GetPosition());
 	auto tempVertexBuffer = skybox->GetVertexBuffer();
 	context->IASetVertexBuffers(0, 1, &tempVertexBuffer, &stride, &offset);
 	context->IASetIndexBuffer(skybox->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
@@ -1124,16 +1142,25 @@ void Game::DrawSceneBlend(XMFLOAT4 clip)
 {
 }
 
-void Game::DrawParticles(float totalTime)
+void Game::DrawParticles(float totalTime, XMFLOAT4 clip)
 {
 	//rendering particle
 	float blend[4] = { 1,1,1,1 };
 	context->OMSetBlendState(particleBlendState, blend, 0xffffffff);
 	context->OMSetDepthStencilState(particleDepth, 0);
 
+	auto view = camera->GetViewMatrix();
+
+	if (reflect)
+	{
+		XMMATRIX reflectedMatrix = XMMatrixReflect(XMLoadFloat4(&clip));
+		XMMATRIX tempView = XMMatrixMultiply(reflectedMatrix, XMLoadFloat4x4(&view));
+		XMStoreFloat4x4(&view, tempView);
+	}
+
 	particlePS->SetSamplerState("sampleOptions", samplerState);
-	shipGas->Draw(context, camera, totalTime);
-	shipGas2->Draw(context, camera, totalTime);
+	shipGas->Draw(context, view, camera->GetProjectionMatrix(),totalTime);
+	shipGas2->Draw(context, view,camera->GetProjectionMatrix(), totalTime);
 
 	context->OMSetDepthStencilState(0, 0);
 	context->OMSetBlendState(0, blend, 0xffffffff);
@@ -1368,22 +1395,29 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	context->ClearRenderTargetView(backBufferRTV, color);
 	context->ClearRenderTargetView(waterReflectionRTV, color);
-	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH,1.0f,0);
+	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL,1.0f,0);
 	//rendering shadow
 	RenderShadowMap();
 
 	//rendering the scene without water
 	context->OMSetRenderTargets(1, &waterReflectionRTV, depthStencilView);
 
-	XMFLOAT4 clip = XMFLOAT4(0, 1.0f, 0, -10.f);
+	context->RSSetState(nullptr);
+	context->RSSetViewports(1, &viewport);
+
+	XMFLOAT4 clip = XMFLOAT4(0, 1.0f, 0, 10.f);
+
+	reflect = true;
 
 	DrawSceneOpaque(clip);
 	DrawSky(clip);
-	DrawParticles(totalTime);
+	DrawParticles(totalTime,clip);
 
-	context->OMSetRenderTargets(1, &backBufferRTV, 0);
+	reflect = false;
+
+	//context->OMSetRenderTargets(1, &backBufferRTV, 0);
 	//rendering full screen quad for reflection
-	DrawFullScreenQuad(waterReflectionSRV);
+	//DrawFullScreenQuad(waterReflectionSRV);
 
 	//stride of each vertex
 	UINT stride = sizeof(Vertex);
@@ -1409,11 +1443,11 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	//drawing the water
 	waterPS->SetShaderResourceView("reflectionTexture", waterReflectionSRV);
-	water->Draw(lights[0], skybox->GetSkyboxTexture(), camera, context,deltaTime);
+	water->Draw(lights[0], skybox->GetSkyboxTexture(), camera, context,deltaTime,waterSampler);
 
 	DrawSky(clip);
 
-	DrawParticles(totalTime);
+	DrawParticles(totalTime,clip);
 
 	ID3D11ShaderResourceView* nullSRV[16] = {};
 	context->PSSetShaderResources(0, 16, nullSRV);
