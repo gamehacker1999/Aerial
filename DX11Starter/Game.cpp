@@ -227,10 +227,10 @@ Game::~Game()
 
 	goldMetalnessTextureSRV->Release();
 
-	buildingTextureSRV->Release();
-	buildingNormalTextureSRV->Release();
-	buildingRoughnessTextureSRV->Release();
-	buildingMetalnessTextureSRV->Release();
+	if(buildingTextureSRV) buildingTextureSRV->Release();
+	if(buildingNormalTextureSRV) buildingNormalTextureSRV->Release();
+	if(buildingRoughnessTextureSRV) buildingRoughnessTextureSRV->Release();
+	if(buildingMetalnessTextureSRV) buildingMetalnessTextureSRV->Release();
 
 
 	//releasing depth stencil
@@ -453,7 +453,7 @@ void Game::Init()
 	InitializeEntities();
 
 	bulletCounter = 0;
-	buildingTimer = rand() % 75 + 30;
+	buildingTimer = rand() % 30 + 45;
 	buildingCounter = 0;
 
 	shipGas = std::make_shared<Emitter>(
@@ -1325,20 +1325,52 @@ void Game::Update(float deltaTime, float totalTime)
 	if (buildingCounter >= buildingTimer)
 	{
 		//reset timer and counter
-		buildingTimer = rand() % 75 + 30;
+		buildingTimer = rand() % 30 + 45;
 		buildingCounter = 0;
 
-		//figure out how many buildings need to be generated
-		int numBuildings = rand() % 4 + 1;
+		//Select building rotation
+		int rot = rand() % 4;
+		float xPos;
+		float zPos;
 
-		float radius = 30.0f;
-		int k = 30;
-		
+		//get center of the building generation
+		XMFLOAT3 center = XMFLOAT3(rand() % 120 - 60, -150.0f, ship->GetPosition().z + 1000.0f);
 
-		//for now, generate a single building
-		std::shared_ptr<Entity> newBuilding = std::make_shared<Entity>(buildingMesh, buildingMat);
-		newBuilding->SetPosition(XMFLOAT3(0.0f, -150.0f, ship->GetPosition().z + 1000.0f));
-		entities.emplace_back(newBuilding);
+		//Create the buildings
+		std::shared_ptr<Entity> building1 = std::make_shared<Entity>(buildingMesh, buildingMat);
+		xPos = 40.5f;
+		zPos = -4.5f;
+		building1->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
+			center.x, (rand() % 20 - 10) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		entities.emplace_back(building1);
+
+		std::shared_ptr<Entity> building2 = std::make_shared<Entity>(buildingMesh, buildingMat);
+		xPos = 39;
+		zPos = 36;
+		building2->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
+			center.x, (rand() % 20 - 10) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		entities.emplace_back(building2);
+
+		std::shared_ptr<Entity> building3 = std::make_shared<Entity>(buildingMesh, buildingMat);
+		xPos = -19.5f;
+		zPos = 72;
+		building3->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
+			center.x, (rand() % 20 - 10) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		entities.emplace_back(building3);
+
+		std::shared_ptr<Entity> building4 = std::make_shared<Entity>(buildingMesh, buildingMat);
+		xPos = -42;
+		zPos = -45;
+		building4->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
+			center.x, (rand() % 20 - 10) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		entities.emplace_back(building4);
+
+		std::shared_ptr<Entity> building5 = std::make_shared<Entity>(buildingMesh, buildingMat);
+		xPos = 0;
+		zPos = -70.5;
+		building5->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
+			center.x, (rand() % 20 - 10) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		entities.emplace_back(building5);
 	}
 
 	// handle bullet creation

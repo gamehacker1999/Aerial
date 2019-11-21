@@ -177,7 +177,6 @@ private:
 	int score;
 
 	//Building list
-	std::vector<std::shared_ptr<Entity>> buildings;
 	int buildingTimer;
 	float buildingCounter;
 
