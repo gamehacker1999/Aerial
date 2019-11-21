@@ -231,6 +231,7 @@ Game::~Game()
 	if(buildingNormalTextureSRV) buildingNormalTextureSRV->Release();
 	if(buildingRoughnessTextureSRV) buildingRoughnessTextureSRV->Release();
 	if(buildingMetalnessTextureSRV) buildingMetalnessTextureSRV->Release();
+	if(boulderTextureSRV) boulderTextureSRV->Release();
 
 
 	//releasing depth stencil
@@ -592,6 +593,7 @@ void Game::CreateBasicGeometry()
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingNormal.png", 0, &buildingNormalTextureSRV);
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingRoughness.png", 0, &buildingRoughnessTextureSRV);
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingMetalness.png", 0, &buildingMetalnessTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/boulder.png", 0, &boulderTextureSRV);
 
 
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/waterDiffuse.jpg", 0, &waterDiffuse);
@@ -633,12 +635,15 @@ void Game::CreateBasicGeometry()
 
 	buildingMat = std::make_shared<Material>(vertexShader, pbrPixelShader, samplerState,
 		buildingTextureSRV, buildingNormalTextureSRV, buildingRoughnessTextureSRV, buildingMetalnessTextureSRV);
+	boulderMat = std::make_shared<Material>(vertexShader, pbrPixelShader, samplerState,
+		boulderTextureSRV, boulderTextureSRV, boulderTextureSRV, boulderTextureSRV);
 
 	shipMesh = std::make_shared<Mesh>("../../Assets/Models/ship.obj",device);
 	std::shared_ptr<Mesh> object = std::make_shared<Mesh>("../../Assets/Models/cube.obj", device);
 	obstacleMesh = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
 	bulletMesh = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
 	buildingMesh = std::make_shared<Mesh>("../../Assets/Models/building.obj", device);
+	boulderMesh = std::make_shared<Mesh>("../../Assets/Models/boulder.obj", device);
 	waterMesh = std::make_shared<Mesh>("../../Assets/Models/quad.obj", device);
 
 	ID3D11SamplerState* samplerStateCube;
@@ -1371,6 +1376,12 @@ void Game::Update(float deltaTime, float totalTime)
 		building5->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
 			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
 		entities.emplace_back(building5);
+
+		std::shared_ptr<Entity> boulder = std::make_shared<Entity>(boulderMesh, boulderMat);
+		boulder->SetPosition(XMFLOAT3(center.x, center.y, center.z - 32));
+		//boulder->SetRotation(boulderRotation);
+		boulder->SetScale(XMFLOAT3(11, 11, 11));
+		entities.emplace_back(boulder);
 	}
 
 	// handle bullet creation

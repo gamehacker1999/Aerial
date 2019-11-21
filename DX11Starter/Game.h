@@ -185,6 +185,7 @@ private:
 	std::shared_ptr<Material> material;
 	std::shared_ptr<Material> obstacleMat;
 	std::shared_ptr<Material> buildingMat;
+	std::shared_ptr<Material> boulderMat;
 
 	//rim lighting shader
 	SimplePixelShader* pbrRimLightingShader;
@@ -224,7 +225,7 @@ private:
 	ID3D11ShaderResourceView* buildingNormalTextureSRV;
 	ID3D11ShaderResourceView* buildingRoughnessTextureSRV;
 	ID3D11ShaderResourceView* buildingMetalnessTextureSRV;
-
+	ID3D11ShaderResourceView* boulderTextureSRV;
 
 	//water textures
 	std::shared_ptr<Water> water;
