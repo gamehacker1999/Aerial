@@ -227,6 +227,11 @@ Game::~Game()
 
 	goldMetalnessTextureSRV->Release();
 
+	buildingTextureSRV->Release();
+	buildingNormalTextureSRV->Release();
+	buildingRoughnessTextureSRV->Release();
+	buildingMetalnessTextureSRV->Release();
+
 
 	//releasing depth stencil
 	dssLessEqual->Release();
@@ -448,6 +453,8 @@ void Game::Init()
 	InitializeEntities();
 
 	bulletCounter = 0;
+	buildingTimer = rand() % 75 + 30;
+	buildingCounter = 0;
 
 	shipGas = std::make_shared<Emitter>(
 		300, //max particles
@@ -580,6 +587,13 @@ void Game::CreateBasicGeometry()
 
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/BronzeMetallic.png", 0, &goldMetalnessTextureSRV);
 
+	//Load Building textures
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/building.png", 0, &buildingTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingNormal.png", 0, &buildingNormalTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingRoughness.png", 0, &buildingRoughnessTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingMetalness.png", 0, &buildingMetalnessTextureSRV);
+
+
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/waterDiffuse.jpg", 0, &waterDiffuse);
 
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/particle.jpg", 0, &particleTexture);
@@ -617,10 +631,14 @@ void Game::CreateBasicGeometry()
 	obstacleMat = std::make_shared<Material>(vertexShader, pbrRimLightingShader, samplerState,
 		goldTextureSRV, goldNormalTextureSRV, goldRoughnessTextureSRV, goldMetalnessTextureSRV);
 
+	buildingMat = std::make_shared<Material>(vertexShader, pbrPixelShader, samplerState,
+		buildingTextureSRV, buildingNormalTextureSRV, buildingRoughnessTextureSRV, buildingMetalnessTextureSRV);
+
 	shipMesh = std::make_shared<Mesh>("../../Assets/Models/ship.obj",device);
 	std::shared_ptr<Mesh> object = std::make_shared<Mesh>("../../Assets/Models/cube.obj", device);
 	obstacleMesh = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
 	bulletMesh = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
+	buildingMesh = std::make_shared<Mesh>("../../Assets/Models/building.obj", device);
 	waterMesh = std::make_shared<Mesh>("../../Assets/Models/quad.obj", device);
 
 	ID3D11SamplerState* samplerStateCube;
@@ -1299,6 +1317,28 @@ void Game::Update(float deltaTime, float totalTime)
 		obstacles.emplace_back(newObstacle);
 		entities.emplace_back(newObstacle);
 		frameCounter = 0.0f;
+	}
+
+	//Generate building clusters
+	buildingCounter += deltaTime;
+
+	if (buildingCounter >= buildingTimer)
+	{
+		//reset timer and counter
+		buildingTimer = rand() % 75 + 30;
+		buildingCounter = 0;
+
+		//figure out how many buildings need to be generated
+		int numBuildings = rand() % 4 + 1;
+
+		float radius = 30.0f;
+		int k = 30;
+		
+
+		//for now, generate a single building
+		std::shared_ptr<Entity> newBuilding = std::make_shared<Entity>(buildingMesh, buildingMat);
+		newBuilding->SetPosition(XMFLOAT3(0.0f, -150.0f, ship->GetPosition().z + 1000.0f));
+		entities.emplace_back(newBuilding);
 	}
 
 	// handle bullet creation
