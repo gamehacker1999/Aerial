@@ -93,6 +93,11 @@ void Ship::GetInput(float deltaTime)
 	}
 }
 
+float Ship::GetHealth()
+{
+	return health;
+}
+
 bool Ship::IsColliding(std::shared_ptr<Entity> other)
 {
 	//checking if it collided with the obstacle
