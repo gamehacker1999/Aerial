@@ -1065,12 +1065,10 @@ void Game::DrawSceneOpaque(XMFLOAT4 clip)
 
 	auto view = camera->GetViewMatrix();
 
-	if (reflect)
-	{
-		XMMATRIX reflectedMatrix = XMMatrixReflect(XMLoadFloat4(&clip));
-		XMMATRIX tempView = XMMatrixMultiply(reflectedMatrix,XMLoadFloat4x4(&view));
-		XMStoreFloat4x4(&view, tempView);
-	}
+	//if (reflect)
+	//{
+	//	view = camera->GetViewMatrix();
+	//}
 
 	for (size_t i = 0; i < entities.size(); i++)
 	{
@@ -1150,13 +1148,6 @@ void Game::DrawParticles(float totalTime, XMFLOAT4 clip)
 	context->OMSetDepthStencilState(particleDepth, 0);
 
 	auto view = camera->GetViewMatrix();
-
-	if (reflect)
-	{
-		XMMATRIX reflectedMatrix = XMMatrixReflect(XMLoadFloat4(&clip));
-		XMMATRIX tempView = XMMatrixMultiply(reflectedMatrix, XMLoadFloat4x4(&view));
-		XMStoreFloat4x4(&view, tempView);
-	}
 
 	particlePS->SetSamplerState("sampleOptions", samplerState);
 	shipGas->Draw(context, view, camera->GetProjectionMatrix(),totalTime);
@@ -1408,12 +1399,19 @@ void Game::Draw(float deltaTime, float totalTime)
 	XMFLOAT4 clip = XMFLOAT4(0, 1.0f, 0, 10.f);
 
 	reflect = true;
-
+	camera->InvertPitch();
+	auto cameraPos = camera->GetPosition();
+	float distance = 2 * (cameraPos.y - (0.0f));
+	cameraPos.y -= distance;
+	camera->SetPosition(cameraPos);
 	DrawSceneOpaque(clip);
 	DrawSky(clip);
 	DrawParticles(totalTime,clip);
 
+	cameraPos.y += distance;
+	camera->SetPosition(cameraPos);
 	reflect = false;
+	camera->InvertPitch();
 
 	//context->OMSetRenderTargets(1, &backBufferRTV, 0);
 	//rendering full screen quad for reflection

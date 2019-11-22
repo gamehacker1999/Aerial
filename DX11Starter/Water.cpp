@@ -21,8 +21,7 @@ void Water::Update(float deltaTime,XMFLOAT3 shipPos)
 {
 	//setting the world matrix for water
 	XMFLOAT3 curPos = shipPos;
-	curPos.y = -10;
-	curPos.z += 30;
+	curPos.y = -25;
 	curPos.z += 30;
 	curPos.x = 0;
 	XMFLOAT3 scale = XMFLOAT3(10.f, 10.f, 10.f);
