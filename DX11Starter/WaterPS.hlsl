@@ -36,10 +36,10 @@ cbuffer LightData: register(b0)
 };
 
 //function that accepts light and normal and then calculates the final color
-float4 CalculateLight(Light light, float3 normal, VertexToPixel input)
+float4 CalculateLight(float3 normal, VertexToPixel input)
 {
 	//standard N dot L calculation for the light
-	float3 L = -light.direction;
+	float3 L = -dirLight.direction;
 	L = normalize(L); //normalizing the negated direction
 	float3 N = normal;
 	N = normalize(N); //normalizing the normal
@@ -60,7 +60,7 @@ float4 CalculateLight(Light light, float3 normal, VertexToPixel input)
 	//return diffuse;
 
 	//adding diffuse, ambient, and specular color
-	float4 finalLight = float4(light.diffuse,1.0f) * NdotL;
+	float4 finalLight = float4(dirLight.diffuse,1.0f) * NdotL;
 	finalLight += specularAmount;
 	finalLight += float4(0.3, 0.3, 0.3, 1.0f);
 
@@ -81,6 +81,16 @@ float4 main(VertexToPixel input) : SV_TARGET
 	float2 reflectionTexCoord = float2(input.screenUV.x, -input.screenUV.y);
 	float4 reflectionColor = reflectionTexture.Sample(sampleOptions, reflectionTexCoord);
 
+	float2 scrollUV1 = float2(input.uv.x + scrollX, input.uv.y);
+	float3 normal1 = normalTexture1.Sample(sampleOptions, scrollUV1).rgb;
+	//unpacking the normal
+	normal1 = (normal1 * 2.0f) - 1.0f;
+
+	float2 scrollUV2 = float2(input.uv.x, input.uv.y + scrollY);
+	float3 normal2 = normalTexture2.Sample(sampleOptions, scrollUV2).rgb;
+
+	normal2 = (normal2 * 2.0f) - 1.0f;
+
 	float4 surfaceColor = waterTexture.Sample(sampleOptions, input.uv);
 
 	//surfaceColor = pow(surfaceColor, 2.2);
@@ -90,6 +100,13 @@ float4 main(VertexToPixel input) : SV_TARGET
 	float3 B = normalize(cross(T, N));
 	float3x3 TBN = float3x3(T, B, N);
 
+	normal1 = mul(normal1, TBN);
+	normal2 = mul(normal2, TBN);
+
+	//averaging the two normals
+	float3 finalNormal = normalize(normal1 + normal2);
+	//surfaceColor = pow(surfaceColor, 2.2);
+
 	//calculating cubemap reflections
 	float3 I = input.worldPosition - cameraPosition;
 	I = normalize(I); //incident ray
@@ -97,8 +114,9 @@ float4 main(VertexToPixel input) : SV_TARGET
 
 	float2 reflectedUV = mul(float4(reflected, 0),view).xy*0.1;
 	reflectedUV.x *= -1;
+
 	reflectionColor = reflectionTexture.Sample(sampleOptions, reflectionTexCoord+reflectedUV);
-	float4 lightingColor = CalculateLight(dirLight, N, input);
+	float4 lightingColor = CalculateLight(N, input);
 
 	float4 totalColor = surfaceColor * lightingColor;
 

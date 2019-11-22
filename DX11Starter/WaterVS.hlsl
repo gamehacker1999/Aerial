@@ -12,6 +12,8 @@ cbuffer externalData : register(b0)
 	float dt;
 	float4 waveA;
 	float4 waveB;
+	float4 waveC;
+	float4 waveD;
 	float2 direction;
 	matrix projection;
 	matrix lightView;
@@ -77,7 +79,8 @@ float3 GerstnerWave(float4 wave, float3 pos, inout float3 tangent, inout float3 
 		d.y * (a * cos(f))
 	);
 }
-
+Texture2D heightMap: register(t4);
+SamplerState sampleOptions: register(s0);
 // --------------------------------------------------------
 // The entry point (main method) for our vertex shader
 // 
@@ -94,11 +97,15 @@ VertexToPixel main(VertexShaderInput input)
 	// all of those transformations (world to view to projection space)
 	matrix worldViewProj = mul(mul(world, view), projection);
 
+	float height = heightMap.Sample(sampleOptions,input.uv);
+
 	float3 pos = input.position;
 	float3 tangent = float3(1.0f, 0, 0);
 	float3 binormal = float3(0.0f, 0, 1.0f);
 	pos += GerstnerWave(waveA,input.position,tangent,binormal,dt);
 	pos += GerstnerWave(waveB, input.position, tangent, binormal, dt);
+	pos += GerstnerWave(waveC, input.position, tangent, binormal, dt);
+	pos += GerstnerWave(waveD, input.position, tangent, binormal, dt);
 	input.position = pos;
 	input.normal = normalize(cross(binormal,tangent));
 
@@ -113,7 +120,7 @@ VertexToPixel main(VertexShaderInput input)
 	output.worldPosition = mul(float4(input.position, 1.0f), world).xyz;
 
 	//sending the world coordinates of the tangent to the pixel shader
-	output.tangent = mul(input.tangent, (float3x3)world);
+	output.tangent = mul(tangent, (float3x3)world);
 
 	//sending the UV coordinates
 	output.uv = input.uv;
