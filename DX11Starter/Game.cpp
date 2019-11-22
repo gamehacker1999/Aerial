@@ -66,6 +66,23 @@ Game::Game(HINSTANCE hInstance)
 	waterReflectionVS = nullptr;
 	waterSampler = nullptr;
 
+	terrainTexture1 = nullptr;
+	terrainTexture2 = nullptr;
+	terrainTexture3 = nullptr;
+	terrainNormalTexture1  = nullptr;
+	terrainNormalTexture2  = nullptr;
+	terrainNormalTexture3  = nullptr;
+	terrainBlendMap=nullptr;
+	terrainPS = nullptr;
+
+	noiseR1 = nullptr;
+	noiseI1 = nullptr;
+	noiseR2 = nullptr;
+	noiseI2 = nullptr;
+	twiddleFactorsCS = nullptr;
+	butterflyCS = nullptr;
+	inversionCS = nullptr;
+
 	prevMousePos = { 0,0 };	
 
 #if defined(DEBUG) || defined(_DEBUG)
@@ -173,6 +190,12 @@ Game::~Game()
 	if (waterVS)
 		delete waterVS;
 
+	delete h0CS;
+	delete htCS;
+	delete twiddleFactorsCS;
+	delete butterflyCS;
+	delete inversionCS;
+
 	if (waterDiffuse)
 		waterDiffuse->Release();
 
@@ -194,6 +217,18 @@ Game::~Game()
 	if (waterReflectionSRV)
 		waterReflectionSRV->Release();
 
+	if (noiseR1)
+		noiseR1->Release();
+
+	if (noiseI1)
+		noiseI1->Release();
+
+	if (noiseR2)
+		noiseR2->Release();
+
+	if (noiseI2)
+		noiseI2->Release();
+
 	if (waterSampler)
 		waterSampler->Release();
 
@@ -208,6 +243,9 @@ Game::~Game()
 
 
 	textureSRV->Release();
+
+	if (terrainPS)
+		delete terrainPS;
 	//trying to load a texture
 
 	//trying to load a normalMap
@@ -227,6 +265,27 @@ Game::~Game()
 
 	goldMetalnessTextureSRV->Release();
 
+	if (terrainTexture1)
+		terrainTexture1->Release();
+
+	if (terrainTexture2)
+		terrainTexture2->Release();
+
+	if (terrainTexture3)
+		terrainTexture3->Release();
+
+	if (terrainNormalTexture1)
+		terrainNormalTexture1->Release();
+
+	if (terrainNormalTexture2)
+		terrainNormalTexture2->Release();
+
+	if (terrainNormalTexture3)
+		terrainNormalTexture3->Release();
+
+	if (terrainBlendMap)
+		terrainBlendMap->Release();
+
 
 	//releasing depth stencil
 	dssLessEqual->Release();
@@ -244,6 +303,7 @@ void Game::Init()
 	//  - You'll be expanding and/or replacing these later
 	LoadShaders();
 	CreateBasicGeometry();
+	GenerateTerrain();
 
 	//initalizing camera
 	camera = std::make_shared<Camera>(XMFLOAT3(0.0f, 3.5f, -18.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
@@ -465,6 +525,8 @@ void Game::Init()
 		XMFLOAT3(0.f, -1.f, 0.f), //acceleration
 		device, particleVS, particlePS, particleTexture);
 
+	emitterList.emplace_back(shipGas);
+
 	//look up for what each piece means
 	shipGas2 = std::make_shared<Emitter>(
 		300, 
@@ -481,6 +543,8 @@ void Game::Init()
 		XMFLOAT4(-2, 2, -2, 2),
 		XMFLOAT3(0.f, -1.f, 0.f), 
 		device, particleVS, particlePS, particleTexture);
+
+	emitterList.emplace_back(shipGas2);
 
 }
 
@@ -549,6 +613,24 @@ void Game::LoadShaders()
 
 	pbrRimLightingShader = new SimplePixelShader(device, context);
 	pbrRimLightingShader->LoadShaderFile(L"PBRRimLighting.cso");
+
+	terrainPS = new SimplePixelShader(device, context);
+	terrainPS->LoadShaderFile(L"TerrainPS.cso");
+
+	h0CS = new SimpleComputeShader(device, context);
+	h0CS->LoadShaderFile(L"H0OceanCS.cso");
+
+	htCS = new SimpleComputeShader(device, context);
+	htCS->LoadShaderFile(L"HtOceanCS.cso");
+
+	twiddleFactorsCS = new SimpleComputeShader(device, context);
+	twiddleFactorsCS->LoadShaderFile(L"TwiddleFactorsCS.cso");
+
+	butterflyCS = new SimpleComputeShader(device, context);
+	butterflyCS->LoadShaderFile(L"ButterflyCS.cso");
+
+	inversionCS = new SimpleComputeShader(device, context);
+	inversionCS->LoadShaderFile(L"InversionCS.cso");
 }
 
 // --------------------------------------------------------
@@ -590,6 +672,24 @@ void Game::CreateBasicGeometry()
 	//loading water textures
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/water1Normal.jpg", 0, &waterNormal1);
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/water2Normal.jpg", 0, &waterNormal2);
+
+	//loading terrain textures
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/valley_splat.png", 0, &terrainBlendMap);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/snow.jpg", 0, &terrainTexture1);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/grass3.png", 0, &terrainTexture2);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/mountain3.png", 0, &terrainTexture3);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/snow_normals.jpg", 0, &terrainNormalTexture1);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/grass3_normals.png", 0, &terrainNormalTexture2);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/mountain3_normals.png", 0, &terrainNormalTexture3);
+
+	//noise textures
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/NoiseR1.jpg", 0, &noiseR1);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/NoiseI1.jpg", 0, &noiseI1);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/NoiseR2.jpg", 0, &noiseR2);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/NoiseI2.jpg", 0, &noiseI2);
+
+
+
 
 	//creating a sampler state
 	//sampler state description
@@ -644,6 +744,30 @@ void Game::CreateBasicGeometry()
 	device->CreateRasterizerState(&skyRSDesc, &skyRS);
 }
 
+void Game::GenerateTerrain()
+{
+	terrain = std::make_shared<Terrain>(
+		device, //device
+		"../../Assets/Textures/valley.raw16",//file
+		513, //width
+		513, //height
+		TerrainBitDepth::BitDepth_16, //bit depth
+		40.0f, //yscale
+		0.2f, //xz scale
+		1.0f, //uv scale
+		terrainTexture1,
+		terrainTexture2,
+		terrainTexture3,
+		terrainBlendMap,
+		terrainNormalTexture1,
+		terrainNormalTexture2,
+		terrainNormalTexture3,
+		samplerState,
+		vertexShader,
+		terrainPS
+	);
+}
+
 void Game::InitializeEntities()
 {
 	ship = std::make_shared<Ship>(shipMesh, material);
@@ -664,7 +788,16 @@ void Game::InitializeEntities()
 		bullets.emplace_back(newBullet);
 	}
 
-	water = std::make_shared<Water>(waterMesh, waterDiffuse, waterNormal1, waterNormal2, waterPS, waterVS, samplerState);
+	water = std::make_shared<Water>(waterMesh, 
+		waterDiffuse, 
+		waterNormal1, waterNormal2, 
+		waterPS, waterVS,h0CS, htCS, twiddleFactorsCS, butterflyCS, inversionCS,
+		samplerState,device,
+		noiseR1,noiseI1,noiseR2,noiseI2);
+
+	water->CreateH0Texture();
+
+	water->CreateTwiddleIndices();
 }
 
 void Game::CreateIrradianceMaps()
@@ -1065,10 +1198,12 @@ void Game::DrawSceneOpaque(XMFLOAT4 clip)
 
 	auto view = camera->GetViewMatrix();
 
-	//if (reflect)
-	//{
-	//	view = camera->GetViewMatrix();
-	//}
+	if (reflect)
+	{
+		XMMATRIX reflectedMatrix = XMMatrixReflect(XMLoadFloat4(&clip));
+		XMMATRIX tempView = XMMatrixMultiply(reflectedMatrix,XMLoadFloat4x4(&view));
+		XMStoreFloat4x4(&view, tempView);
+	}
 
 	for (size_t i = 0; i < entities.size(); i++)
 	{
@@ -1149,9 +1284,19 @@ void Game::DrawParticles(float totalTime, XMFLOAT4 clip)
 
 	auto view = camera->GetViewMatrix();
 
+	if (reflect)
+	{
+		XMMATRIX reflectedMatrix = XMMatrixReflect(XMLoadFloat4(&clip));
+		XMMATRIX tempView = XMMatrixMultiply(reflectedMatrix, XMLoadFloat4x4(&view));
+		XMStoreFloat4x4(&view, tempView);
+	}
+
 	particlePS->SetSamplerState("sampleOptions", samplerState);
-	shipGas->Draw(context, view, camera->GetProjectionMatrix(),totalTime);
-	shipGas2->Draw(context, view,camera->GetProjectionMatrix(), totalTime);
+
+	for (int i = 0; i < emitterList.size(); i++)
+	{
+		emitterList[i]->Draw(context, view, camera->GetProjectionMatrix(), totalTime);
+	}
 
 	context->OMSetDepthStencilState(0, 0);
 	context->OMSetBlendState(0, blend, 0xffffffff);
@@ -1232,6 +1377,50 @@ void Game::DrawFullScreenQuad(ID3D11ShaderResourceView* texSRV)
 
 	// Draw
 	context->Draw(3, 0);
+}
+
+void Game::CreateExplosion(XMFLOAT3 pos)
+{
+	std::shared_ptr<Emitter> explosion = std::make_shared<Emitter>(
+		1000, //max particles
+		1000, //particles per second
+		0.7f, //lifetime
+		0.03f, //start size
+		1.0f, //end size
+		XMFLOAT4(1, 0.3f, 0.3f, 1.0f), //start color
+		XMFLOAT4(1, 0.1f, 0.1f, 0.3f), //end color
+		XMFLOAT3(0, 0, 0.f), //start vel
+		XMFLOAT3(5.0f, 5.0f, 5.0f), //velocity deviation range
+		pos, //start position
+		XMFLOAT3(0.0f, 0.0f, 0.0f), //position deviation range
+		XMFLOAT4(-2, 2, -2, 2), //rotation around z axis
+		XMFLOAT3(0.f, 0.f, 0.f), //acceleration
+		device, particleVS, particlePS, particleTexture);
+
+	explosion->SetTemporary(2.f);
+	emitterList.emplace_back(explosion);
+}
+
+void Game::CreateSmoke(XMFLOAT3 shipPos)
+{
+	std::shared_ptr<Emitter> smoke = std::make_shared<Emitter>(
+		300, //max particles
+		50, //particles per second
+		0.7f, //lifetime
+		0.03f, //start size
+		1.0f, //end size
+		XMFLOAT4(1, 1.f, 1.f, 1.0f), //start color
+		XMFLOAT4(1.f, 1.f, 0.5f, 1.f), //end color
+		XMFLOAT3(-1, 1, 0.f), //start vel
+		XMFLOAT3(0.2f, 0.2f, 0.2f), //velocity deviation range
+		shipPos, //start position
+		XMFLOAT3(0.2f, 0.2f, 0.2f), //position deviation range
+		XMFLOAT4(-2, 2, -2, 2), //rotation around z axis
+		XMFLOAT3(0.f, 0.f, 0.f), //acceleration
+		device, particleVS, particlePS, particleTexture);
+
+	emitterList.emplace_back(smoke);
+
 }
 
 
@@ -1318,10 +1507,13 @@ void Game::Update(float deltaTime, float totalTime)
 		if (entities[i]->GetAliveState())
 		{
 			entities[i]->Update(deltaTime);
+			if (ship->GetHealth() < 4)
+			{
+				//CreateSmoke(ship->GetPosition());
+			}
 		}
 	}
 
-	shipGas->UpdateParticles(deltaTime,totalTime);
 	auto shipPos = ship->GetPosition();
 	auto shipForward = ship->GetForward();
 	XMFLOAT3 em1Pos;
@@ -1330,15 +1522,28 @@ void Game::Update(float deltaTime, float totalTime)
 	shipGas->SetAcceleration(shipForward);
 	shipGas->SetPosition(em1Pos);
 
-	shipGas2->UpdateParticles(deltaTime,totalTime);
 	shipPos = ship->GetPosition();
 	XMFLOAT3 em2Pos;
 	XMStoreFloat3(&em2Pos, XMLoadFloat3(&shipPos) + XMLoadFloat3(&shipForward) * 3);
 	em2Pos.x += 1.2f;
+	shipGas2->SetAcceleration(shipForward);
 	shipGas2->SetPosition(em2Pos);
 
-	water->Update(deltaTime, ship->GetPosition());
+	for (int i = 0; i < emitterList.size(); i++)
+	{
+		emitterList[i]->UpdateParticles(deltaTime, totalTime);
+		if (emitterList[i]->IsDead())
+		{
+			emitterList[i] = nullptr;
+		}
+	}
 
+	water->Update(deltaTime, ship->GetPosition());
+	XMFLOAT3 terrainPos = shipPos;
+
+	terrainPos.y = -20.0f;
+	terrainPos.x = -5;
+	terrain->SetPosition(terrainPos);
 
 	//checking for collision
 	for (int i = 0; i < entities.size(); i++)
@@ -1348,6 +1553,7 @@ void Game::Update(float deltaTime, float totalTime)
 			entities[i]->IsColliding(entities[j]);
 		}
 	}
+
 
 	for (int i = 0; i < entities.size(); i++)
 	{
@@ -1367,11 +1573,18 @@ void Game::Update(float deltaTime, float totalTime)
 				break;
 			}
 
+			if (entities[i]->GetTag() == "Obstacle")
+			{
+				CreateExplosion(entities[i]->GetPosition());
+			}
+
 			entities[i] = nullptr;
 		}
 	}
 
 	entities.erase(std::remove(entities.begin(), entities.end(), nullptr), entities.end());
+	emitterList.erase(std::remove(emitterList.begin(), emitterList.end(), nullptr), emitterList.end());
+
 
 	lights[1].position.x = (float)sin(deltaTime)*10;
 }
@@ -1399,19 +1612,12 @@ void Game::Draw(float deltaTime, float totalTime)
 	XMFLOAT4 clip = XMFLOAT4(0, 1.0f, 0, 10.f);
 
 	reflect = true;
-	camera->InvertPitch();
-	auto cameraPos = camera->GetPosition();
-	float distance = 2 * (cameraPos.y - (0.0f));
-	cameraPos.y -= distance;
-	camera->SetPosition(cameraPos);
+
 	DrawSceneOpaque(clip);
 	DrawSky(clip);
 	DrawParticles(totalTime,clip);
 
-	cameraPos.y += distance;
-	camera->SetPosition(cameraPos);
 	reflect = false;
-	camera->InvertPitch();
 
 	//context->OMSetRenderTargets(1, &backBufferRTV, 0);
 	//rendering full screen quad for reflection
@@ -1441,11 +1647,14 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	//drawing the water
 	waterPS->SetShaderResourceView("reflectionTexture", waterReflectionSRV);
-	water->Draw(lights[0], skybox->GetSkyboxTexture(), camera, context,deltaTime,waterSampler);
+	water->Draw(lights[0], skybox->GetSkyboxTexture(), camera, context,deltaTime,totalTime,waterSampler);
 
 	DrawSky(clip);
 
 	DrawParticles(totalTime,clip);
+
+	//terrain->Draw(camera->GetViewMatrix(), camera->GetProjectionMatrix(),
+		//context, lights[0]);
 
 	ID3D11ShaderResourceView* nullSRV[16] = {};
 	context->PSSetShaderResources(0, 16, nullSRV);

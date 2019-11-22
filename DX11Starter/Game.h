@@ -44,6 +44,7 @@ private:
 	// Initialization helper methods - feel free to customize, combine, etc.
 	void LoadShaders(); 
 	void CreateBasicGeometry();
+	void GenerateTerrain();
 	void InitializeEntities();
 	void CreateIrradianceMaps();
 	void CreatePrefilteredMaps();
@@ -56,6 +57,8 @@ private:
 	void DrawWaterReflection();
 	void RenderShadowMap();
 	void DrawFullScreenQuad(ID3D11ShaderResourceView* texSRV);
+	void CreateExplosion(XMFLOAT3 pos);
+	void CreateSmoke(XMFLOAT3 shipPos);
 
 
 	// Wrappers for DirectX shaders to provide simplified functionality
@@ -190,6 +193,7 @@ private:
 	ID3D11BlendState* particleBlendState;
 	std::shared_ptr<Emitter> shipGas;
 	std::shared_ptr<Emitter> shipGas2;
+	std::vector<std::shared_ptr<Emitter>> emitterList;
 
 	//textures
 	ID3D11ShaderResourceView* textureSRV;
@@ -226,9 +230,26 @@ private:
 	ID3D11ShaderResourceView* waterReflectionSRV;
 	ID3D11RenderTargetView* waterReflectionRTV;
 	SimplePixelShader* fullScreenTrianglePS;
+	SimpleComputeShader* h0CS;
+	SimpleComputeShader* htCS;
+	SimpleComputeShader* twiddleFactorsCS;
+	SimpleComputeShader* butterflyCS;
+	SimpleComputeShader* inversionCS;
+	ID3D11ShaderResourceView* noiseR1;
+	ID3D11ShaderResourceView* noiseI1;
+	ID3D11ShaderResourceView* noiseR2;
+	ID3D11ShaderResourceView* noiseI2;
 	bool reflect;
 
-	//loading cel shading
+	//terrain stuff
+	ID3D11ShaderResourceView* terrainTexture1;
+	ID3D11ShaderResourceView* terrainTexture2;
+	ID3D11ShaderResourceView* terrainTexture3;
+	ID3D11ShaderResourceView* terrainNormalTexture1;
+	ID3D11ShaderResourceView* terrainNormalTexture2;
+	ID3D11ShaderResourceView* terrainNormalTexture3;
+	ID3D11ShaderResourceView* terrainBlendMap;
+	SimplePixelShader* terrainPS;
 
 };
 
