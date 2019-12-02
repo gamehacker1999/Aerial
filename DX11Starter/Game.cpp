@@ -1347,6 +1347,8 @@ void Game::Update(float deltaTime, float totalTime)
 		zPos = -4.5f;
 		building1->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
 			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		building1->SetTag("Building");
+		building1->UseRigidBody();
 		entities.emplace_back(building1);
 
 		std::shared_ptr<Entity> building2 = std::make_shared<Entity>(buildingMesh, buildingMat);
@@ -1354,6 +1356,8 @@ void Game::Update(float deltaTime, float totalTime)
 		zPos = 36;
 		building2->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
 			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		building2->SetTag("Building");
+		building2->UseRigidBody();
 		entities.emplace_back(building2);
 
 		std::shared_ptr<Entity> building3 = std::make_shared<Entity>(buildingMesh, buildingMat);
@@ -1361,6 +1365,8 @@ void Game::Update(float deltaTime, float totalTime)
 		zPos = 72;
 		building3->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
 			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		building3->SetTag("Building");
+		building3->UseRigidBody();
 		entities.emplace_back(building3);
 
 		std::shared_ptr<Entity> building4 = std::make_shared<Entity>(buildingMesh, buildingMat);
@@ -1368,6 +1374,8 @@ void Game::Update(float deltaTime, float totalTime)
 		zPos = -45;
 		building4->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
 			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		building4->SetTag("Building");
+		building4->UseRigidBody();
 		entities.emplace_back(building4);
 
 		std::shared_ptr<Entity> building5 = std::make_shared<Entity>(buildingMesh, buildingMat);
@@ -1375,12 +1383,18 @@ void Game::Update(float deltaTime, float totalTime)
 		zPos = -70.5;
 		building5->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
 			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		building5->SetTag("Building");
+		building5->UseRigidBody();
 		entities.emplace_back(building5);
 
 		std::shared_ptr<Entity> boulder = std::make_shared<Entity>(boulderMesh, boulderMat);
 		boulder->SetPosition(XMFLOAT3(center.x, center.y, center.z - 32));
 		//boulder->SetRotation(boulderRotation);
 		boulder->SetScale(XMFLOAT3(11, 11, 11));
+		XMFLOAT4 rotationFloat;
+		XMVECTOR rotVec = XMQuaternionRotationRollPitchYaw(0, 0, XM_PIDIV2);
+		XMStoreFloat4(&rotationFloat, rotVec);
+		boulder->SetRotation(rotationFloat);
 		entities.emplace_back(boulder);
 	}
 
@@ -1460,6 +1474,20 @@ void Game::Update(float deltaTime, float totalTime)
 			}
 
 			entities[i] = nullptr;
+		}
+	}
+
+	//delete entities behind player
+	for (int i = 0; i < entities.size(); i++)
+	{
+		if (entities[i] == NULL)
+		{
+			break;
+		}
+
+		if (entities[i]->GetPosition().z < ship->GetPosition().z - 100.0f)
+		{
+			entities[i]->Die();
 		}
 	}
 
