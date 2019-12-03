@@ -1517,7 +1517,7 @@ void Game::Update(float deltaTime, float totalTime)
 		float zPos;
 
 		//get center of the building generation
-		XMFLOAT3 center = XMFLOAT3(rand() % 120 - 60, -150.0f, ship->GetPosition().z + 400.0f);
+		XMFLOAT3 center = XMFLOAT3(rand() % 120 - 60, -50.0f, ship->GetPosition().z + 400.0f);
 
 		//Create the buildings
 		std::shared_ptr<Entity> building1 = std::make_shared<Entity>(buildingMesh, buildingMat);
@@ -1570,7 +1570,7 @@ void Game::Update(float deltaTime, float totalTime)
 		//boulder->SetRotation(boulderRotation);
 		boulder->SetScale(XMFLOAT3(11, 11, 11));
 		XMFLOAT4 rotationFloat;
-		XMVECTOR rotVec = XMQuaternionRotationRollPitchYaw(0, 0, XM_PIDIV2);
+		XMVECTOR rotVec = XMQuaternionRotationRollPitchYaw(0, 0, XM_PI+XM_PIDIV2);
 		XMStoreFloat4(&rotationFloat, rotVec);
 		boulder->SetRotation(rotationFloat);
 		entities.emplace_back(boulder);
