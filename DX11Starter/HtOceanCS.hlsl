@@ -26,7 +26,7 @@ Complex Mul(Complex c0, Complex c1)
 {
 	Complex c;
 	c.real = c0.real * c1.real - c0.im * c1.im;
-	c.im = c0.real * c1.im * c0.im * c1.real;
+	c.im = c0.real * c1.im + c0.im * c1.real;
 
 	return c;
 }
@@ -56,7 +56,7 @@ void main( uint3 id : SV_DispatchThreadID )
 	if (mag < 0.00001f) mag = 0.00001;
 	float magSq = mag * mag;
 
-	float w = sqrt(g * mag);
+	float w = sqrt(9.81 * mag);
 
 	float2 tildeH0Vals = tildeH0[id.xy].rg;
 	Complex fourierCmp;
@@ -98,8 +98,8 @@ void main( uint3 id : SV_DispatchThreadID )
 	Complex hkdz = Mul(dz, hkdy);
 
 
-	tildeHktDx[id.xy] = float4(saturate(hkdx.real), saturate(hkdx.im), 0, 1);
-	tildeHktDy[id.xy] = float4(saturate(hkdy.real), saturate(hkdy.im), 0, 1.0);
-	tildeHktDz[id.xy] = float4(saturate(hkdz.real), saturate(hkdz.im), 0, 1);
+	tildeHktDx[id.xy] = float4(hkdx.real, hkdx.im, 0, 1.0);
+	tildeHktDy[id.xy] = float4(hkdy.real, hkdy.im, 0, 1.0);
+	tildeHktDz[id.xy] = float4(hkdz.real, hkdz.im, 0, 1.0);
 
 }

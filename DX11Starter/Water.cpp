@@ -4,7 +4,8 @@ Water::Water(std::shared_ptr<Mesh> waterMesh, ID3D11ShaderResourceView* waterTex
 	ID3D11ShaderResourceView* waterNormal1, ID3D11ShaderResourceView* waterNormal2,
 	SimplePixelShader* waterPS, SimpleVertexShader* waterVS,
 	SimpleComputeShader* h0CS, SimpleComputeShader* htCS, SimpleComputeShader* twiddleFactorsCS,
-	SimpleComputeShader* butterflyCS, SimpleComputeShader* inversionCS, ID3D11SamplerState* samplerState,
+	SimpleComputeShader* butterflyCS, SimpleComputeShader* inversionCS, SimpleComputeShader* sobelFilter,
+	SimpleComputeShader* jacobianCS, ID3D11SamplerState* samplerState,
 	ID3D11Device* device, ID3D11ShaderResourceView* noiseR1, ID3D11ShaderResourceView* noiseI1,
 	ID3D11ShaderResourceView* noiseR2, ID3D11ShaderResourceView* noiseI2)
 {
@@ -24,6 +25,8 @@ Water::Water(std::shared_ptr<Mesh> waterMesh, ID3D11ShaderResourceView* waterTex
 	this->twiddleFactorsCS = twiddleFactorsCS;
 	this->butterflyCS = butterflyCS;
 	this->inversionCS = inversionCS;
+	this->sobelFilter = sobelFilter;
+	this->jacobianCS = jacobianCS;
 
 	texSize = 256;
 	int bits = (int)(log(256) / log(2));
@@ -294,6 +297,134 @@ Water::Water(std::shared_ptr<Mesh> waterMesh, ID3D11ShaderResourceView* waterTex
 
 	pingpong1Tex->Release();
 
+	//dx
+	ID3D11Texture2D* dxTex;
+
+	D3D11_TEXTURE2D_DESC dxTexDesc = {};
+	dxTexDesc.Width = texSize;
+	dxTexDesc.Height = texSize;
+	dxTexDesc.ArraySize = 1;
+	dxTexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	dxTexDesc.CPUAccessFlags = 0;
+	dxTexDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	dxTexDesc.MipLevels = 1;
+	dxTexDesc.MiscFlags = 0;
+	dxTexDesc.SampleDesc.Count = 1;
+	dxTexDesc.SampleDesc.Quality = 0;
+	dxTexDesc.Usage = D3D11_USAGE_DEFAULT;
+	device->CreateTexture2D(&dxTexDesc, 0, &dxTex);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC dxSRVDesc = {};
+	dxSRVDesc.Format = dxTexDesc.Format;
+	dxSRVDesc.Texture2D.MipLevels = 1;
+	dxSRVDesc.Texture2D.MostDetailedMip = 0;
+	dxSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	device->CreateShaderResourceView(dxTex, &dxSRVDesc, &dxSRV);
+
+	D3D11_UNORDERED_ACCESS_VIEW_DESC dxUAVDesc = {};
+	dxUAVDesc.Format = dxTexDesc.Format;
+	dxUAVDesc.Texture2D.MipSlice = 0;
+	dxUAVDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+	device->CreateUnorderedAccessView(dxTex, &dxUAVDesc, &dxUAV);
+
+	dxTex->Release();
+
+	//dz
+	ID3D11Texture2D* dzTex;
+
+	D3D11_TEXTURE2D_DESC dzTexDesc = {};
+	dzTexDesc.Width = texSize;
+	dzTexDesc.Height = texSize;
+	dzTexDesc.ArraySize = 1;
+	dzTexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	dzTexDesc.CPUAccessFlags = 0;
+	dzTexDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	dzTexDesc.MipLevels = 1;
+	dzTexDesc.MiscFlags = 0;
+	dzTexDesc.SampleDesc.Count = 1;
+	dzTexDesc.SampleDesc.Quality = 0;
+	dzTexDesc.Usage = D3D11_USAGE_DEFAULT;
+	device->CreateTexture2D(&dzTexDesc, 0, &dzTex);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC dzSRVDesc = {};
+	dzSRVDesc.Format = dzTexDesc.Format;
+	dzSRVDesc.Texture2D.MipLevels = 1;
+	dzSRVDesc.Texture2D.MostDetailedMip = 0;
+	dzSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	device->CreateShaderResourceView(dzTex, &dzSRVDesc, &dzSRV);
+
+	D3D11_UNORDERED_ACCESS_VIEW_DESC dzUAVDesc = {};
+	dzUAVDesc.Format = dzTexDesc.Format;
+	dzUAVDesc.Texture2D.MipSlice = 0;
+	dzUAVDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+	device->CreateUnorderedAccessView(dzTex, &dzUAVDesc, &dzUAV);
+
+	dzTex->Release();
+	
+
+	//normal map
+	ID3D11Texture2D* normalMapTex;
+
+	D3D11_TEXTURE2D_DESC normalMapTexDesc = {};
+	normalMapTexDesc.Width = texSize;
+	normalMapTexDesc.Height = texSize;
+	normalMapTexDesc.ArraySize = 1;
+	normalMapTexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	normalMapTexDesc.CPUAccessFlags = 0;
+	normalMapTexDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	normalMapTexDesc.MipLevels = 1;
+	normalMapTexDesc.MiscFlags = 0;
+	normalMapTexDesc.SampleDesc.Count = 1;
+	normalMapTexDesc.SampleDesc.Quality = 0;
+	normalMapTexDesc.Usage = D3D11_USAGE_DEFAULT;
+	device->CreateTexture2D(&normalMapTexDesc, 0, &normalMapTex);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC normalMapSRVDesc = {};
+	normalMapSRVDesc.Format = normalMapTexDesc.Format;
+	normalMapSRVDesc.Texture2D.MipLevels = 1;
+	normalMapSRVDesc.Texture2D.MostDetailedMip = 0;
+	normalMapSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	device->CreateShaderResourceView(normalMapTex, &normalMapSRVDesc, &normalMapSRV);
+
+	D3D11_UNORDERED_ACCESS_VIEW_DESC normalMapUAVDesc = {};
+	normalMapUAVDesc.Format = normalMapTexDesc.Format;
+	normalMapUAVDesc.Texture2D.MipSlice = 0;
+	normalMapUAVDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+	device->CreateUnorderedAccessView(normalMapTex, &normalMapUAVDesc, &normalMapUAV);
+
+	normalMapTex->Release();
+
+	//folding map
+	ID3D11Texture2D* foldingMapTex;
+
+	D3D11_TEXTURE2D_DESC foldingMapTexDesc = {};
+	foldingMapTexDesc.Width = texSize;
+	foldingMapTexDesc.Height = texSize;
+	foldingMapTexDesc.ArraySize = 1;
+	foldingMapTexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	foldingMapTexDesc.CPUAccessFlags = 0;
+	foldingMapTexDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	foldingMapTexDesc.MipLevels = 1;
+	foldingMapTexDesc.MiscFlags = 0;
+	foldingMapTexDesc.SampleDesc.Count = 1;
+	foldingMapTexDesc.SampleDesc.Quality = 0;
+	foldingMapTexDesc.Usage = D3D11_USAGE_DEFAULT;
+	device->CreateTexture2D(&foldingMapTexDesc, 0, &foldingMapTex);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC foldingMapSRVDesc = {};
+	foldingMapSRVDesc.Format = foldingMapTexDesc.Format;
+	foldingMapSRVDesc.Texture2D.MipLevels = 1;
+	foldingMapSRVDesc.Texture2D.MostDetailedMip = 0;
+	foldingMapSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	device->CreateShaderResourceView(foldingMapTex, &foldingMapSRVDesc, &foldingMapSRV);
+
+	D3D11_UNORDERED_ACCESS_VIEW_DESC foldingMapUAVDesc = {};
+	foldingMapUAVDesc.Format = normalMapTexDesc.Format;
+	foldingMapUAVDesc.Texture2D.MipSlice = 0;
+	foldingMapUAVDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+	device->CreateUnorderedAccessView(foldingMapTex, &foldingMapUAVDesc, &foldingMapUAV);
+
+	foldingMapTex->Release();
 }
 
 Water::~Water()
@@ -320,16 +451,25 @@ Water::~Water()
 
 	dySRV->Release();
 	dyUAV->Release();
+
+	dxSRV->Release();
+	dxUAV->Release();
+
+	dzSRV->Release();
+	dzUAV->Release();
+
+	normalMapSRV->Release();
+	normalMapUAV->Release();
 }
 
 void Water::Update(float deltaTime,XMFLOAT3 shipPos)
 {
 	//setting the world matrix for water
 	XMFLOAT3 curPos = shipPos;
-	curPos.y = -25;
-	curPos.z += 30;
+	curPos.y = -75;
+	curPos.z += 60;
 	curPos.x = 0;
-	XMFLOAT3 scale = XMFLOAT3(10.f, 10.f, 10.f);
+	XMFLOAT3 scale = XMFLOAT3(15.f, 15.f, 15.f);
 	XMMATRIX matTrans = XMMatrixTranslationFromVector(XMLoadFloat3(&curPos));
 	XMMATRIX matScale = XMMatrixScalingFromVector(XMLoadFloat3(&scale));
 	XMMATRIX rot = XMMatrixRotationQuaternion(XMQuaternionIdentity());
@@ -347,6 +487,8 @@ void Water::Draw(Light lights, ID3D11ShaderResourceView* cubeMap, std::shared_pt
 	//totalTime += deltaTime;
 	
 	waterVS->SetShaderResourceView("heightMap", dySRV);
+	waterVS->SetShaderResourceView("heightMapX", dxSRV);
+	waterVS->SetShaderResourceView("heightMapZ", dzSRV);
 	waterVS->SetSamplerState("sampleOptions", samplerState);
 	waterVS->SetMatrix4x4("world", worldMat);
 	waterVS->SetMatrix4x4("view", camera->GetViewMatrix());
@@ -356,6 +498,8 @@ void Water::Draw(Light lights, ID3D11ShaderResourceView* cubeMap, std::shared_pt
 	waterVS->SetFloat4("waveC", XMFLOAT4(-1, 1, 0.3f, 2.0f));
 	waterVS->SetFloat4("waveD", XMFLOAT4(1, 0, 0.3f, 2.0f));
 	waterVS->SetFloat("speed", 0.60f);
+	waterVS->SetFloat2("windDir", XMFLOAT2(1, 1));
+	waterVS->SetFloat("windSpeed", 40);
 	waterVS->SetFloat("dt", totalTime);
 	waterVS->CopyAllBufferData();
 	waterVS->SetShader();
@@ -369,12 +513,14 @@ void Water::Draw(Light lights, ID3D11ShaderResourceView* cubeMap, std::shared_pt
 	waterPS->SetFloat("scrollX", scrollX);
 	waterPS->SetFloat("scrollY", scrollY);
 	waterPS->SetData("dirLight", &lights, sizeof(Light));
-	waterPS->SetFloat3("cameraPos", camera->GetPosition());
+	waterPS->SetFloat3("cameraPosition", camera->GetPosition());
 	waterPS->SetMatrix4x4("view", camera->GetViewMatrix());
 
 	waterPS->SetShaderResourceView("waterTexture", waterTex);
 	waterPS->SetShaderResourceView("normalTexture1", waterNormal1);
 	waterPS->SetShaderResourceView("normalTexture2", waterNormal2);
+	waterPS->SetShaderResourceView("normalTexture3", normalMapSRV);
+	waterPS->SetShaderResourceView("foldingMap", foldingMapSRV);
 	waterPS->SetSamplerState("sampleOptions", samplerState);
 	waterPS->SetSamplerState("waterSampleOptions", waterSampler);
 
@@ -495,26 +641,27 @@ void Water::RenderFFT(float totalTime)
 	int pingpong = 0;
 
 	butterflyCS->SetShader();
-
+	
 	//horizontal fft
 	for (int i = 0; i < log2N; i++)
 	{
-
+	
 		butterflyCS->SetInt("pingpong", pingpong);
 		butterflyCS->SetInt("direction", 0);
 		butterflyCS->SetInt("stage", i);
 		butterflyCS->CopyAllBufferData();
 		butterflyCS->DispatchByThreads(256, 256, 1);
-
+		
+	
 		pingpong++;
 		pingpong %= 2;
-
+	
 	}
-
+	
 	butterflyCS->SetUnorderedAccessView("twiddleIndices", twiddleUAV);
 	butterflyCS->SetUnorderedAccessView("pingpong0", htyUAV);
 	butterflyCS->SetUnorderedAccessView("pingpong1", pingpong0UAV);
-
+	
 	//vertical fft
 	for (int i = 0; i < log2N; i++)
 	{
@@ -523,16 +670,16 @@ void Water::RenderFFT(float totalTime)
 		butterflyCS->SetInt("stage", i);
 		butterflyCS->CopyAllBufferData();
 		butterflyCS->DispatchByThreads(256, 256, 1);
-
+	
 		pingpong++;
 		pingpong %= 2;
-
+	
 	}
-
+	
 	butterflyCS->SetUnorderedAccessView("twiddleIndices", 0);
 	butterflyCS->SetUnorderedAccessView("pingpong0", 0);
 	butterflyCS->SetUnorderedAccessView("pingpong1", 0);
-
+	
 	inversionCS->SetShader();
 	inversionCS->SetInt("N", 256);
 	inversionCS->SetInt("pingpong", pingpong);
@@ -544,5 +691,156 @@ void Water::RenderFFT(float totalTime)
 	inversionCS->SetUnorderedAccessView("displacement", 0);
 	inversionCS->SetUnorderedAccessView("pingpong0", 0);
 	inversionCS->SetUnorderedAccessView("pingpong1", 0);
+
+	if (true)
+	{
+		//dx fft
+		pingpong = 0;
+
+		butterflyCS->SetUnorderedAccessView("twiddleIndices", twiddleUAV);
+		butterflyCS->SetUnorderedAccessView("pingpong0", htxUAV);
+		butterflyCS->SetUnorderedAccessView("pingpong1", pingpong0UAV);
+
+		int pingpong = 0;
+
+		butterflyCS->SetShader();
+
+		//horizontal fft
+		for (int i = 0; i < log2N; i++)
+		{
+
+			butterflyCS->SetInt("pingpong", pingpong);
+			butterflyCS->SetInt("direction", 0);
+			butterflyCS->SetInt("stage", i);
+			butterflyCS->CopyAllBufferData();
+			butterflyCS->DispatchByThreads(256, 256, 1);
+
+
+			pingpong++;
+			pingpong %= 2;
+
+		}
+
+		butterflyCS->SetUnorderedAccessView("twiddleIndices", twiddleUAV);
+		butterflyCS->SetUnorderedAccessView("pingpong0", htxUAV);
+		butterflyCS->SetUnorderedAccessView("pingpong1", pingpong0UAV);
+
+		//vertical fft
+		for (int i = 0; i < log2N; i++)
+		{
+			butterflyCS->SetInt("pingpong", pingpong);
+			butterflyCS->SetInt("direction", 1);
+			butterflyCS->SetInt("stage", i);
+			butterflyCS->CopyAllBufferData();
+			butterflyCS->DispatchByThreads(256, 256, 1);
+
+			pingpong++;
+			pingpong %= 2;
+
+		}
+
+		butterflyCS->SetUnorderedAccessView("twiddleIndices", 0);
+		butterflyCS->SetUnorderedAccessView("pingpong0", 0);
+		butterflyCS->SetUnorderedAccessView("pingpong1", 0);
+
+		inversionCS->SetShader();
+		inversionCS->SetInt("N", 256);
+		inversionCS->SetInt("pingpong", pingpong);
+		inversionCS->SetUnorderedAccessView("displacement", dxUAV);
+		inversionCS->SetUnorderedAccessView("pingpong0", htxUAV);
+		inversionCS->SetUnorderedAccessView("pingpong1", pingpong0UAV);
+		inversionCS->CopyAllBufferData();
+		inversionCS->DispatchByThreads(256, 256, 1);
+		inversionCS->SetUnorderedAccessView("displacement", 0);
+		inversionCS->SetUnorderedAccessView("pingpong0", 0);
+		inversionCS->SetUnorderedAccessView("pingpong1", 0);
+
+	}
+
+	if (true)
+	{
+		//dz fft
+		pingpong = 0;
+
+		butterflyCS->SetUnorderedAccessView("twiddleIndices", twiddleUAV);
+		butterflyCS->SetUnorderedAccessView("pingpong0", htzUAV);
+		butterflyCS->SetUnorderedAccessView("pingpong1", pingpong0UAV);
+
+		int pingpong = 0;
+
+		butterflyCS->SetShader();
+
+		//horizontal fft
+		for (int i = 0; i < log2N; i++)
+		{
+
+			butterflyCS->SetInt("pingpong", pingpong);
+			butterflyCS->SetInt("direction", 0);
+			butterflyCS->SetInt("stage", i);
+			butterflyCS->CopyAllBufferData();
+			butterflyCS->DispatchByThreads(256, 256, 1);
+
+
+			pingpong++;
+			pingpong %= 2;
+
+		}
+
+		butterflyCS->SetUnorderedAccessView("twiddleIndices", twiddleUAV);
+		butterflyCS->SetUnorderedAccessView("pingpong0", htzUAV);
+		butterflyCS->SetUnorderedAccessView("pingpong1", pingpong0UAV);
+
+		//vertical fft
+		for (int i = 0; i < log2N; i++)
+		{
+			butterflyCS->SetInt("pingpong", pingpong);
+			butterflyCS->SetInt("direction", 1);
+			butterflyCS->SetInt("stage", i);
+			butterflyCS->CopyAllBufferData();
+			butterflyCS->DispatchByThreads(256, 256, 1);
+
+			pingpong++;
+			pingpong %= 2;
+
+		}
+
+		butterflyCS->SetUnorderedAccessView("twiddleIndices", 0);
+		butterflyCS->SetUnorderedAccessView("pingpong0", 0);
+		butterflyCS->SetUnorderedAccessView("pingpong1", 0);
+
+		inversionCS->SetShader();
+		inversionCS->SetInt("N", 256);
+		inversionCS->SetInt("pingpong", pingpong);
+		inversionCS->SetUnorderedAccessView("displacement", dzUAV);
+		inversionCS->SetUnorderedAccessView("pingpong0", htzUAV);
+		inversionCS->SetUnorderedAccessView("pingpong1", pingpong0UAV);
+		inversionCS->CopyAllBufferData();
+		inversionCS->DispatchByThreads(256, 256, 1);
+		inversionCS->SetUnorderedAccessView("displacement", 0);
+		inversionCS->SetUnorderedAccessView("pingpong0", 0);
+		inversionCS->SetUnorderedAccessView("pingpong1", 0);
+	}
+
+	jacobianCS->SetShader();
+	jacobianCS->SetUnorderedAccessView("heightMapDX",dxUAV);
+	jacobianCS->SetUnorderedAccessView("heightMapDY",dyUAV);
+	jacobianCS->SetUnorderedAccessView("foldingMap",foldingMapUAV);
+	jacobianCS->CopyAllBufferData();
+	jacobianCS->DispatchByThreads(256, 256, 1);
+	jacobianCS->SetUnorderedAccessView("heightMapDX",0);
+	jacobianCS->SetUnorderedAccessView("heightMapDY",0);
+	jacobianCS->SetUnorderedAccessView("foldingMap",0);
+
+
+	sobelFilter->SetShader();
+	sobelFilter->SetInt("N", 256);
+	sobelFilter->SetFloat("normalStrength", 8);
+	sobelFilter->SetSamplerState("sampleOptions", samplerState);
+	sobelFilter->SetShaderResourceView("heightMap", dySRV);
+	sobelFilter->SetUnorderedAccessView("normalMap", normalMapUAV);
+	sobelFilter->CopyAllBufferData();
+	sobelFilter->DispatchByThreads(256, 256, 1);
+	sobelFilter->SetUnorderedAccessView("heightMap", 0);
+	sobelFilter->SetUnorderedAccessView("normalMap", 0);
 
 }

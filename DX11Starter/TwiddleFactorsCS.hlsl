@@ -51,14 +51,14 @@ void main( uint3 id : SV_DispatchThreadID )
 		//top wing
 		if (butterflywing == 1)
 		{
-			twiddleIndices[x] = float4(saturate(twiddle.real), saturate(twiddle.im),
-				saturate(indices[x.y].index), saturate(indices[x.y + 1].index));
+			twiddleIndices[x] = float4(twiddle.real, twiddle.im,
+				indices[x.y].index, indices[x.y + 1].index);
 		}
 
 		else
 		{
-			twiddleIndices[x] = float4(saturate(twiddle.real), saturate(twiddle.im),
-				saturate(indices[x.y-1].index), saturate(indices[x.y].index));
+			twiddleIndices[x] = float4(twiddle.real, twiddle.im,
+				indices[x.y-1].index, indices[x.y].index);
 		}
 	}
 
@@ -67,14 +67,14 @@ void main( uint3 id : SV_DispatchThreadID )
 		//top wing
 		if (butterflywing == 1)
 		{
-			twiddleIndices[x] = float4(saturate(twiddle.real), saturate(twiddle.im),
-				saturate(x.y), saturate(x.y+butterflySpan));
+			twiddleIndices[x] = float4(twiddle.real, twiddle.im,
+				x.y, x.y+butterflySpan);
 		}
 
 		else
 		{
-			twiddleIndices[x] = float4(saturate(twiddle.real), saturate(twiddle.im),
-				saturate(x.y-butterflySpan), saturate(x.y));
+			twiddleIndices[x] = float4(twiddle.real, twiddle.im,
+				x.y-butterflySpan,x.y);
 		}
 	}
 }

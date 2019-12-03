@@ -7,7 +7,7 @@ cbuffer philipsSpectrum: register(b0)
 	float windSpeed;
 }
 
-static const float PI = 3.14159f;
+static const float PI = 3.1415926535897932384626433832795f;
 static const float g = 9.81f;
 
 RWTexture2D<float4> tildeH0: register(u0);
@@ -53,19 +53,19 @@ void main( uint3 id : SV_DispatchThreadID )
 
 	//using sqrt of philip of k
 	float h0k = clamp(sqrt((amp / (magSq * magSq)) * 
-		pow(dot(normalize(k), normalize(windDir)), 6.0) 
+		pow(dot(normalize(k), normalize(windDir)), 2.0) 
 		* exp(-(1.0 / (magSq * L_ * L_))) 
 		* exp(-magSq * pow(L/2000.0f, 2.0))) / sqrt(2.0), -4000.0, 4000.0);
 
 	//using sqrt of philip of -k
 	float h0Minusk = clamp(sqrt((amp / (magSq * magSq)) *
-		pow(dot(normalize(-k), normalize(windDir)), 6.0)
+		pow(dot(normalize(-k), normalize(windDir)), 2.0)
 		* exp(-(1.0 / (magSq * L_ * L_)))
 		* exp(-magSq * pow(L / 2000.0f, 2.0))) / sqrt(2.0), -4000.0, 4000.0);
 
 	float4 gaussianRND = GaussRNG(id);
 
-	tildeH0[id.xy] = float4(saturate(gaussianRND.x * h0k), saturate(gaussianRND.y * h0k), 0, 1);
-	tildeMinusH0[id.xy] = float4(saturate(gaussianRND.z * h0Minusk), saturate(gaussianRND.w * h0Minusk), 0, 1);
+	tildeH0[id.xy] = float4(gaussianRND.x * h0k, gaussianRND.y * h0k, 0, 1);
+	tildeMinusH0[id.xy] = float4(gaussianRND.z * h0Minusk, gaussianRND.w * h0Minusk, 0, 1);
 
 }

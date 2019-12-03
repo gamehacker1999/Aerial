@@ -10,6 +10,8 @@ cbuffer externalData : register(b0)
 	float wavelength;
 	float speed;*/
 	float dt;
+	float2 windDir;
+	float windSpeed;
 	float4 waveA;
 	float4 waveB;
 	float4 waveC;
@@ -44,6 +46,8 @@ struct VertexToPixel
 	float3 worldPosition: POSITION; //position of vertex in world space
 	float3 tangent		: TANGENT;	//tangent of the vertex
 	float2 uv			: TEXCOORD;
+	float2 motion		: TEXCOORD2;
+	float2 heightUV		: TEXCOORD3;
 	noperspective float2 screenUV		: VPOS;
 };
 
@@ -79,8 +83,13 @@ float3 GerstnerWave(float4 wave, float3 pos, inout float3 tangent, inout float3 
 		d.y * (a * cos(f))
 	);
 }
-Texture2D heightMap: register(t4);
+Texture2D heightMap: register(t0);
+Texture2D heightMapX: register(t1);
+Texture2D heightMapZ: register(t2);
+
 SamplerState sampleOptions: register(s0);
+static const float2 size = { 2.0,0.0 };
+static const float3 off = { -1.0,0.0,1.0 };
 // --------------------------------------------------------
 // The entry point (main method) for our vertex shader
 // 
@@ -97,17 +106,58 @@ VertexToPixel main(VertexShaderInput input)
 	// all of those transformations (world to view to projection space)
 	matrix worldViewProj = mul(mul(world, view), projection);
 
-	float height = heightMap.Sample(sampleOptions,input.uv);
+	float2 waveMotion = windSpeed * windDir;
+
+	output.motion = waveMotion;
+
+	float2 heightUV = float2(input.position.x, input.position.z)*0.03f;
+	heightUV.x = heightUV.x * 0.5 + 0.5;
+	heightUV.y = -heightUV.y * 0.5 + 0.5;
+
+	output.heightUV = input.uv;
+
+	float texelSize = 1.0 / 256.0;
+
+	float height  =  heightMap.SampleLevel(sampleOptions, input.uv+waveMotion,0).r;
+	float heightX = heightMapX.SampleLevel(sampleOptions, input.uv+waveMotion,0).r;
+	float heightZ = heightMapZ.SampleLevel(sampleOptions, input.uv+waveMotion,0).r;
+
+	float2 offxy = { off.x / 256.0 , off.y / 256.0 };
+	float2 offzy = { off.z / 256.0 , off.y / 256.0 };
+	float2 offyx = { off.y / 256.0 , off.x / 256.0 };
+	float2 offyz = { off.y / 256.0 , off.z / 256.0 };
+
+	//float hL = heightMap.SampleLevel(sampleOptions, float2(input.uv.x - texelSize, input.uv.y),0).r;
+	//float hR = heightMap.SampleLevel(sampleOptions, float2(input.uv.x + texelSize, input.uv.y),0).r;
+	//float hD = heightMap.SampleLevel(sampleOptions, float2(input.uv.x, input.uv.y - texelSize),0).r;
+	//float hU = heightMap.SampleLevel(sampleOptions, float2(input.uv.x ,input.uv.y + texelSize),0).r;
+	float s11 = height;
+	float s01 = heightMap.SampleLevel(sampleOptions, input.uv+offxy,0).r;
+	float s21 = heightMap.SampleLevel(sampleOptions, input.uv+offzy, 0).r;
+	float s10 = heightMap.SampleLevel(sampleOptions, input.uv+offyx, 0).r;
+	float s12 = heightMap.SampleLevel(sampleOptions, input.uv+offyz, 0).r;
+	float3 va = normalize(float3(2.0, 0,  s21-s01));
+	float3 vb = normalize(float3(0.0, 2.0, s12-s10));
+	float3 normal = normalize(cross(vb,va));
+
+	//float3 normal = float3(hR-hL, 2, hU-hD);
+	//input.normal = normalize(normal);
 
 	float3 pos = input.position;
-	float3 tangent = float3(1.0f, 0, 0);
-	float3 binormal = float3(0.0f, 0, 1.0f);
-	pos += GerstnerWave(waveA,input.position,tangent,binormal,dt);
-	pos += GerstnerWave(waveB, input.position, tangent, binormal, dt);
-	pos += GerstnerWave(waveC, input.position, tangent, binormal, dt);
-	pos += GerstnerWave(waveD, input.position, tangent, binormal, dt);
+	pos.y = height;
+	pos.z -= heightZ;
+	pos.x -= heightX;
+
 	input.position = pos;
-	input.normal = normalize(cross(binormal,tangent));
+	//float3 tangent = float3(1.0f, 0, 0);
+	//float3 binormal = float3(0.0f, 0, 1.0f);
+	//pos += GerstnerWave(waveA,input.position,tangent,binormal,dt);
+	//pos += GerstnerWave(waveB, input.position, tangent, binormal, dt);
+	//pos += GerstnerWave(waveC, input.position, tangent, binormal, dt);
+	//pos += GerstnerWave(waveD, input.position, tangent, binormal, dt);
+	//input.position = pos;
+	//input.tangernt = normalize(tangent);
+	//input.normal = normalize(cross(binormal,tangent));
 
 	// The result is essentially the position (XY) of the vertex on our 2D 
 	// screen and the distance (Z) from the camera (the "depth" of the pixel)
@@ -120,9 +170,10 @@ VertexToPixel main(VertexShaderInput input)
 	output.worldPosition = mul(float4(input.position, 1.0f), world).xyz;
 
 	//sending the world coordinates of the tangent to the pixel shader
-	output.tangent = mul(tangent, (float3x3)world);
+	output.tangent = mul(input.tangent, (float3x3)world);
 
 	//sending the UV coordinates
+	//output.uv = input.uv;
 	output.uv = input.uv;
 
 	matrix lightWorldViewProj = mul(mul(world, lightView), lightProj);

@@ -39,6 +39,7 @@ Emitter::Emitter(int maxParticles, int particlesPerSecond,
 	firstAliveIndex = 0;
 	firstDeadIndex = 0;
 	isDead = false;
+	isTemp = false;
 	emitterAge = true;
 	explosive = false;
 

@@ -3,7 +3,7 @@
 Camera::Camera(XMFLOAT3 position, XMFLOAT3 direction, XMFLOAT3 up)
 {
 	xRotation = 0.0f;
-	yRotation = 0.0f;
+	yRotation = 20.0f;
 
 	//storing the position, direction, and up
 	this->direction = direction;
@@ -64,7 +64,6 @@ void Camera::CreateProjectionMatrix(float aspectRatio)
 		aspectRatio,				// Aspect ratio
 		0.1f,						// Near clip plane distance
 		2000.0f);					// Far clip plane distance
-	//XMMATRIX P = XMMatrixOrthographicLH(16, 9, 0.1f, 1000.0f);
 
 	XMStoreFloat4x4(&projectionMatrix, XMMatrixTranspose(P)); // Transpose for HLSL!
 
@@ -73,7 +72,7 @@ void Camera::CreateProjectionMatrix(float aspectRatio)
 void Camera::SetPositionTargetAndUp(XMFLOAT3 position, XMFLOAT3 direction, XMFLOAT3 up)
 {
 	xRotation = 0.0f;
-	yRotation = 0.0f;
+	yRotation = 20.0f;
 
 	//storing the position, direction, and up
 	this->direction = direction;
@@ -90,7 +89,7 @@ void Camera::SetPositionTargetAndUp(XMFLOAT3 position, XMFLOAT3 direction, XMFLO
 
 void Camera::ManageKeyboard(float deltaTime)
 {
-	XMVECTOR tempPosition = XMLoadFloat3(&position) + XMLoadFloat3(&direction) * deltaTime*6;//moving the camera forward
+	XMVECTOR tempPosition = XMLoadFloat3(&position) + XMVectorSet(0,0,1,1) * deltaTime*6;//moving the camera forward
 	XMStoreFloat3(&position, tempPosition);// storing the position	
 
 	//move back

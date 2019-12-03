@@ -9,6 +9,8 @@ struct VertexToPixel
 	float3 worldPosition: POSITION; //position of vertex in world space
 	float3 tangent		: TANGENT;	//tangent of the vertex
 	float2 uv			: TEXCOORD;
+	float2 motion		: TEXCOORD2;
+	float2 heightUV		: TEXCOORD3;
 	noperspective float2 screenUV		: VPOS;
 };
 
@@ -62,7 +64,7 @@ float4 CalculateLight(float3 normal, VertexToPixel input)
 	//adding diffuse, ambient, and specular color
 	float4 finalLight = float4(dirLight.diffuse,1.0f) * NdotL;
 	finalLight += specularAmount;
-	finalLight += float4(0.3, 0.3, 0.3, 1.0f);
+	finalLight += float4(0.1, 0.1, 0.1, 1.0f);
 
 	return finalLight;
 }
@@ -70,8 +72,11 @@ float4 CalculateLight(float3 normal, VertexToPixel input)
 Texture2D waterTexture: register(t0);
 Texture2D normalTexture1: register(t1);
 Texture2D normalTexture2: register(t2);
-Texture2D reflectionTexture: register(t3);
-TextureCube cubeMap: register(t4);
+Texture2D normalTexture3: register(t3);
+Texture2D reflectionTexture: register(t4);
+TextureCube cubeMap: register(t5);
+Texture2D foam: register(t6);
+Texture2D foldingMap: register(t7);
 SamplerState sampleOptions: register(s0);
 SamplerState waterSampleOptions: register(s1);
 
@@ -86,14 +91,24 @@ float4 main(VertexToPixel input) : SV_TARGET
 	//unpacking the normal
 	normal1 = (normal1 * 2.0f) - 1.0f;
 
+	//input.normal = normalize(cross(ddx_fine(input.worldPosition), ddy_fine(input.worldPosition)));
+
 	float2 scrollUV2 = float2(input.uv.x, input.uv.y + scrollY);
 	float3 normal2 = normalTexture2.Sample(sampleOptions, scrollUV2).rgb;
 
 	normal2 = (normal2 * 2.0f) - 1.0f;
 
+	float3 normal3 = normalTexture3.Sample(sampleOptions, input.uv).rgb;
+
+	normal3 = (normal3 * 2.0f) - 1.0f;
+
 	float4 surfaceColor = waterTexture.Sample(sampleOptions, input.uv);
 
+	float4 foamColor = foam.Sample(sampleOptions, input.uv*15);
+	float4 foldingColor = foldingMap.Sample(sampleOptions, input.uv);
+
 	//surfaceColor = pow(surfaceColor, 2.2);
+	surfaceColor += saturate((foamColor * foldingColor));
 
 	float3 N = normalize(input.normal);
 	float3 T = normalize(input.tangent) - (dot(normalize(input.tangent), N) * N);
@@ -102,24 +117,27 @@ float4 main(VertexToPixel input) : SV_TARGET
 
 	normal1 = mul(normal1, TBN);
 	normal2 = mul(normal2, TBN);
+	normal3 = mul(normal3, TBN);
 
 	//averaging the two normals
-	float3 finalNormal = normalize(normal1 + normal2);
+	float3 finalNormal = normalize(normal1+normal2);
+	//float3 finalNormal = normalize(normal3);
 	//surfaceColor = pow(surfaceColor, 2.2);
 
 	//calculating cubemap reflections
 	float3 I = input.worldPosition - cameraPosition;
 	I = normalize(I); //incident ray
-	float3 reflected = reflect(I, N);
+	float3 reflected = reflect(I, finalNormal);
 
 	float2 reflectedUV = mul(float4(reflected, 0),view).xy*0.1;
 	reflectedUV.x *= -1;
 
 	reflectionColor = reflectionTexture.Sample(sampleOptions, reflectionTexCoord+reflectedUV);
-	float4 lightingColor = CalculateLight(N, input);
+	float4 lightingColor = CalculateLight(finalNormal, input);
 
 	float4 totalColor = surfaceColor * lightingColor;
-
-	//return reflectionColor;
+	float3 V = normalize(cameraPosition - input.worldPosition); //view vector
+	float4 NdotV = saturate(dot(N, V));
+	//return totalColor;
 	return lerp(reflectionColor,totalColor,0.7);
 }

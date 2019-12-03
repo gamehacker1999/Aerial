@@ -34,6 +34,8 @@ class Water
 	SimpleComputeShader* twiddleFactorsCS;
 	SimpleComputeShader* butterflyCS;
 	SimpleComputeShader* inversionCS;
+	SimpleComputeShader* sobelFilter;
+	SimpleComputeShader* jacobianCS;
 
 	ID3D11ShaderResourceView* noiseR1;
 	ID3D11ShaderResourceView* noiseI1;
@@ -63,6 +65,17 @@ class Water
 	ID3D11ShaderResourceView* dySRV;
 	ID3D11UnorderedAccessView* dyUAV;
 
+	ID3D11ShaderResourceView* dxSRV;
+	ID3D11UnorderedAccessView* dxUAV;
+
+	ID3D11ShaderResourceView* dzSRV;
+	ID3D11UnorderedAccessView* dzUAV;
+
+	ID3D11ShaderResourceView* normalMapSRV;
+	ID3D11UnorderedAccessView* normalMapUAV;
+
+	ID3D11ShaderResourceView* foldingMapSRV;
+	ID3D11UnorderedAccessView* foldingMapUAV;
 
 	int texSize;
 
@@ -73,7 +86,8 @@ public:
 		ID3D11ShaderResourceView* waterNormal1, ID3D11ShaderResourceView* waterNormal2,
 		SimplePixelShader* waterPS, SimpleVertexShader* waterVS, 
 		SimpleComputeShader* h0CS, SimpleComputeShader* htCS, SimpleComputeShader* twiddleFactorsCS,
-		SimpleComputeShader* butterflyCS, SimpleComputeShader* inversionCS,ID3D11SamplerState* samplerState,
+		SimpleComputeShader* butterflyCS, SimpleComputeShader* inversionCS, SimpleComputeShader* sobelFilter,
+		SimpleComputeShader* jacobianCS,ID3D11SamplerState* samplerState,
 		ID3D11Device* device, ID3D11ShaderResourceView* noiseR1, ID3D11ShaderResourceView* noiseI1,
 		ID3D11ShaderResourceView* noiseR2, ID3D11ShaderResourceView* noiseI2);
 	~Water();

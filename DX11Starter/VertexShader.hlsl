@@ -3,6 +3,7 @@
 cbuffer externalData : register(b0)
 {
 	matrix world;
+	matrix reflection;
 	matrix view;
 	float4 clipDistance;
 	matrix projection;
@@ -31,7 +32,6 @@ struct VertexToPixel
 	float3 worldPosition: POSITION; //position of vertex in world space
 	float3 tangent		: TANGENT;	//tangent of the vertex
 	float2 uv			: TEXCOORD;
-	float clip : SV_ClipDistance0;
 };
 
 // --------------------------------------------------------
@@ -45,6 +45,8 @@ VertexToPixel main( VertexShaderInput input )
 {
 	// Set up output struct
 	VertexToPixel output;
+
+	matrix finalWorld = mul(world, reflection);
 
 	// First we multiply them together to get a single matrix which represents
 	// all of those transformations (world to view to projection space)
@@ -62,8 +64,6 @@ VertexToPixel main( VertexShaderInput input )
 
 	//sending the world coordinates of the tangent to the pixel shader
 	output.tangent = mul(input.tangent, (float3x3)world);
-
-	output.clip = dot(mul(float4(input.position, 1.0f), world), clipDistance);
 
 	//sending the UV coordinates
 	output.uv = input.uv;

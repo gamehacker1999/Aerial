@@ -235,10 +235,13 @@ private:
 	SimpleComputeShader* twiddleFactorsCS;
 	SimpleComputeShader* butterflyCS;
 	SimpleComputeShader* inversionCS;
+	SimpleComputeShader* sobelFilter;
+	SimpleComputeShader* jacobianCS;
 	ID3D11ShaderResourceView* noiseR1;
 	ID3D11ShaderResourceView* noiseI1;
 	ID3D11ShaderResourceView* noiseR2;
 	ID3D11ShaderResourceView* noiseI2;
+	ID3D11ShaderResourceView* foam;
 	bool reflect;
 
 	//terrain stuff

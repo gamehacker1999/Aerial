@@ -79,9 +79,12 @@ Game::Game(HINSTANCE hInstance)
 	noiseI1 = nullptr;
 	noiseR2 = nullptr;
 	noiseI2 = nullptr;
+	foam = nullptr;
 	twiddleFactorsCS = nullptr;
 	butterflyCS = nullptr;
 	inversionCS = nullptr;
+	sobelFilter = nullptr;
+	jacobianCS = nullptr;
 
 	prevMousePos = { 0,0 };	
 
@@ -195,6 +198,11 @@ Game::~Game()
 	delete twiddleFactorsCS;
 	delete butterflyCS;
 	delete inversionCS;
+	delete sobelFilter;
+	delete jacobianCS;
+
+	if (foam)
+		foam->Release();
 
 	if (waterDiffuse)
 		waterDiffuse->Release();
@@ -631,6 +639,13 @@ void Game::LoadShaders()
 
 	inversionCS = new SimpleComputeShader(device, context);
 	inversionCS->LoadShaderFile(L"InversionCS.cso");
+
+	sobelFilter = new SimpleComputeShader(device, context);
+	sobelFilter->LoadShaderFile(L"NormalMapCS.cso");
+
+	jacobianCS = new SimpleComputeShader(device, context);
+	jacobianCS->LoadShaderFile(L"JacobianCS.cso");
+
 }
 
 // --------------------------------------------------------
@@ -687,9 +702,7 @@ void Game::CreateBasicGeometry()
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/NoiseI1.jpg", 0, &noiseI1);
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/NoiseR2.jpg", 0, &noiseR2);
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/NoiseI2.jpg", 0, &noiseI2);
-
-
-
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/foam.png",	0, &foam);
 
 	//creating a sampler state
 	//sampler state description
@@ -791,7 +804,7 @@ void Game::InitializeEntities()
 	water = std::make_shared<Water>(waterMesh, 
 		waterDiffuse, 
 		waterNormal1, waterNormal2, 
-		waterPS, waterVS,h0CS, htCS, twiddleFactorsCS, butterflyCS, inversionCS,
+		waterPS, waterVS,h0CS, htCS, twiddleFactorsCS, butterflyCS, inversionCS, sobelFilter, jacobianCS,
 		samplerState,device,
 		noiseR1,noiseI1,noiseR2,noiseI2);
 
@@ -1198,13 +1211,6 @@ void Game::DrawSceneOpaque(XMFLOAT4 clip)
 
 	auto view = camera->GetViewMatrix();
 
-	if (reflect)
-	{
-		XMMATRIX reflectedMatrix = XMMatrixReflect(XMLoadFloat4(&clip));
-		XMMATRIX tempView = XMMatrixMultiply(reflectedMatrix,XMLoadFloat4x4(&view));
-		XMStoreFloat4x4(&view, tempView);
-	}
-
 	for (size_t i = 0; i < entities.size(); i++)
 	{
 		//preparing material for entity
@@ -1283,13 +1289,6 @@ void Game::DrawParticles(float totalTime, XMFLOAT4 clip)
 	context->OMSetDepthStencilState(particleDepth, 0);
 
 	auto view = camera->GetViewMatrix();
-
-	if (reflect)
-	{
-		XMMATRIX reflectedMatrix = XMMatrixReflect(XMLoadFloat4(&clip));
-		XMMATRIX tempView = XMMatrixMultiply(reflectedMatrix, XMLoadFloat4x4(&view));
-		XMStoreFloat4x4(&view, tempView);
-	}
 
 	particlePS->SetSamplerState("sampleOptions", samplerState);
 
@@ -1612,13 +1611,20 @@ void Game::Draw(float deltaTime, float totalTime)
 	XMFLOAT4 clip = XMFLOAT4(0, 1.0f, 0, 10.f);
 
 	reflect = true;
+	auto cameraPos = camera->GetPosition();
+	float distance = 2 * (cameraPos.y - (-1.0f));
+	cameraPos.y -= distance;
+	camera->SetPosition(cameraPos);
+	camera->InvertPitch();
 
 	DrawSceneOpaque(clip);
 	DrawSky(clip);
 	DrawParticles(totalTime,clip);
 
 	reflect = false;
-
+	camera->InvertPitch();
+	cameraPos.y += distance;
+	camera->SetPosition(cameraPos);
 	//context->OMSetRenderTargets(1, &backBufferRTV, 0);
 	//rendering full screen quad for reflection
 	//DrawFullScreenQuad(waterReflectionSRV);
@@ -1647,6 +1653,7 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	//drawing the water
 	waterPS->SetShaderResourceView("reflectionTexture", waterReflectionSRV);
+	waterPS->SetShaderResourceView("foam", foam);
 	water->Draw(lights[0], skybox->GetSkyboxTexture(), camera, context,deltaTime,totalTime,waterSampler);
 
 	DrawSky(clip);
