@@ -1410,6 +1410,20 @@ void Game::Update(float deltaTime, float totalTime)
 			XMFLOAT3 bulletPos = ship->GetPosition();
 			bulletPos.y += 0.5f;
 			newBullet->SetPosition(bulletPos);
+
+			// set bullet rotation to ship rotation - to match forwards ====
+			// get current & original ship rotations and match them
+			XMFLOAT4 storedShipRot = ship->GetRotation();
+			XMFLOAT4 storedShipOrig = ship->GetOriginalRotation();
+			XMVECTOR shipRotation = XMLoadFloat4(&storedShipRot);
+			XMVECTOR originalRotation = XMLoadFloat4(&storedShipOrig);
+			// create var to store new rotation in & store it
+			XMFLOAT4 bulletRotation;
+			XMStoreFloat4(
+				&bulletRotation,
+				XMQuaternionMultiply(XMQuaternionInverse(originalRotation), shipRotation)
+			);
+			newBullet->SetRotation(bulletRotation);
 			entities.emplace_back(newBullet);
 		}
 	}

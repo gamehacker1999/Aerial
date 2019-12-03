@@ -21,5 +21,7 @@ public:
 
 	void SetOriginalRotation(XMFLOAT4 originalRotation);
 
+	XMFLOAT4 GetOriginalRotation();
+
 };
 

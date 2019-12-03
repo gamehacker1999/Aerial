@@ -127,3 +127,8 @@ void Ship::SetOriginalRotation(XMFLOAT4 originalRotation)
 {
 	this->originalRotation = originalRotation;
 }
+
+XMFLOAT4 Ship::GetOriginalRotation()
+{
+	return originalRotation;
+}
