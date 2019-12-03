@@ -466,10 +466,10 @@ void Water::Update(float deltaTime,XMFLOAT3 shipPos)
 {
 	//setting the world matrix for water
 	XMFLOAT3 curPos = shipPos;
-	curPos.y = -75;
-	curPos.z += 60;
+	curPos.y = -60;
+	curPos.z += 200;
 	curPos.x = 0;
-	XMFLOAT3 scale = XMFLOAT3(15.f, 15.f, 15.f);
+	XMFLOAT3 scale = XMFLOAT3(25.f, 25.f, 25.f);
 	XMMATRIX matTrans = XMMatrixTranslationFromVector(XMLoadFloat3(&curPos));
 	XMMATRIX matScale = XMMatrixScalingFromVector(XMLoadFloat3(&scale));
 	XMMATRIX rot = XMMatrixRotationQuaternion(XMQuaternionIdentity());

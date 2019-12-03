@@ -3,7 +3,7 @@
 Camera::Camera(XMFLOAT3 position, XMFLOAT3 direction, XMFLOAT3 up)
 {
 	xRotation = 0.0f;
-	yRotation = 20.0f;
+	yRotation = 0.0f;
 
 	//storing the position, direction, and up
 	this->direction = direction;
@@ -72,7 +72,7 @@ void Camera::CreateProjectionMatrix(float aspectRatio)
 void Camera::SetPositionTargetAndUp(XMFLOAT3 position, XMFLOAT3 direction, XMFLOAT3 up)
 {
 	xRotation = 0.0f;
-	yRotation = 20.0f;
+	yRotation = 0.0f;
 
 	//storing the position, direction, and up
 	this->direction = direction;
