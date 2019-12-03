@@ -98,6 +98,8 @@ private:
 	std::shared_ptr<Mesh> shipMesh;
 	std::shared_ptr<Mesh> obstacleMesh;
 	std::shared_ptr<Mesh> bulletMesh;
+	std::shared_ptr<Mesh> buildingMesh;
+	std::shared_ptr<Mesh> boulderMesh;
 
 	//list of lights
 	//std::vector<Light> lights;
@@ -177,10 +179,16 @@ private:
 	std::vector<std::shared_ptr<Obstacle>> obstacles; // might move this to where the other list is
 	int score;
 
+	//Building list
+	int buildingTimer;
+	float buildingCounter;
+
 	//so i can give the obstacles textures
 	std::shared_ptr<Mesh> sphere;
 	std::shared_ptr<Material> material;
 	std::shared_ptr<Material> obstacleMat;
+	std::shared_ptr<Material> buildingMat;
+	std::shared_ptr<Material> boulderMat;
 
 	//rim lighting shader
 	SimplePixelShader* pbrRimLightingShader;
@@ -215,6 +223,13 @@ private:
 	ID3D11ShaderResourceView* goldRoughnessTextureSRV;
 
 	ID3D11ShaderResourceView* goldMetalnessTextureSRV;
+
+	//Building textures
+	ID3D11ShaderResourceView* buildingTextureSRV;
+	ID3D11ShaderResourceView* buildingNormalTextureSRV;
+	ID3D11ShaderResourceView* buildingRoughnessTextureSRV;
+	ID3D11ShaderResourceView* buildingMetalnessTextureSRV;
+	ID3D11ShaderResourceView* boulderTextureSRV;
 
 	//water textures
 	std::shared_ptr<Water> water;

@@ -101,7 +101,7 @@ float Ship::GetHealth()
 bool Ship::IsColliding(std::shared_ptr<Entity> other)
 {
 	//checking if it collided with the obstacle
-	if (other->GetTag() == "Obstacle"&&useRigidBody
+	if ((other->GetTag() == "Obstacle") && useRigidBody
 		&& GetRigidBody()->SATCollision(other->GetRigidBody()))
 	{
 		health -= 1;
@@ -114,10 +114,26 @@ bool Ship::IsColliding(std::shared_ptr<Entity> other)
 
 	}
 
+	if ((other->GetTag() == "Building") && useRigidBody
+		&& GetRigidBody()->SATCollision(other->GetRigidBody()))
+	{
+		health -= 3;
+		if (health <= 0)
+		{
+			Die();
+		}
+		return true;
+	}
+
 	return false;
 }
 
 void Ship::SetOriginalRotation(XMFLOAT4 originalRotation)
 {
 	this->originalRotation = originalRotation;
+}
+
+XMFLOAT4 Ship::GetOriginalRotation()
+{
+	return originalRotation;
 }

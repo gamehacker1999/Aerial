@@ -290,6 +290,11 @@ Game::~Game()
 
 	if (terrainNormalTexture3)
 		terrainNormalTexture3->Release();
+	if(buildingTextureSRV) buildingTextureSRV->Release();
+	if(buildingNormalTextureSRV) buildingNormalTextureSRV->Release();
+	if(buildingRoughnessTextureSRV) buildingRoughnessTextureSRV->Release();
+	if(buildingMetalnessTextureSRV) buildingMetalnessTextureSRV->Release();
+	if(boulderTextureSRV) boulderTextureSRV->Release();
 
 	if (terrainBlendMap)
 		terrainBlendMap->Release();
@@ -516,6 +521,8 @@ void Game::Init()
 	InitializeEntities();
 
 	bulletCounter = 0;
+	buildingTimer = rand() % 30 + 45;
+	buildingCounter = 0;
 
 	shipGas = std::make_shared<Emitter>(
 		300, //max particles
@@ -677,6 +684,14 @@ void Game::CreateBasicGeometry()
 
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/BronzeMetallic.png", 0, &goldMetalnessTextureSRV);
 
+	//Load Building textures
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/building.png", 0, &buildingTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingNormal.png", 0, &buildingNormalTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingRoughness.png", 0, &buildingRoughnessTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingMetalness.png", 0, &buildingMetalnessTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/boulder.png", 0, &boulderTextureSRV);
+
+
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/waterDiffuse.jpg", 0, &waterDiffuse);
 
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/particle.jpg", 0, &particleTexture);
@@ -730,10 +745,17 @@ void Game::CreateBasicGeometry()
 	obstacleMat = std::make_shared<Material>(vertexShader, pbrRimLightingShader, samplerState,
 		goldTextureSRV, goldNormalTextureSRV, goldRoughnessTextureSRV, goldMetalnessTextureSRV);
 
+	buildingMat = std::make_shared<Material>(vertexShader, pbrPixelShader, samplerState,
+		buildingTextureSRV, buildingNormalTextureSRV, buildingRoughnessTextureSRV, buildingMetalnessTextureSRV);
+	boulderMat = std::make_shared<Material>(vertexShader, pbrPixelShader, samplerState,
+		boulderTextureSRV, boulderTextureSRV, boulderTextureSRV, boulderTextureSRV);
+
 	shipMesh = std::make_shared<Mesh>("../../Assets/Models/ship.obj",device);
 	std::shared_ptr<Mesh> object = std::make_shared<Mesh>("../../Assets/Models/cube.obj", device);
 	obstacleMesh = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
 	bulletMesh = std::make_shared<Mesh>("../../Assets/Models/sphere.obj", device);
+	buildingMesh = std::make_shared<Mesh>("../../Assets/Models/building.obj", device);
+	boulderMesh = std::make_shared<Mesh>("../../Assets/Models/boulder.obj", device);
 	waterMesh = std::make_shared<Mesh>("../../Assets/Models/quad.obj", device);
 
 	ID3D11SamplerState* samplerStateCube;
@@ -1480,6 +1502,80 @@ void Game::Update(float deltaTime, float totalTime)
 		frameCounter = 0.0f;
 	}
 
+	//Generate building clusters
+	buildingCounter += deltaTime;
+
+	if (buildingCounter >= buildingTimer)
+	{
+		//reset timer and counter
+		buildingTimer = rand() % 30 + 45;
+		buildingCounter = 0;
+
+		//Select building rotation
+		int rot = rand() % 4;
+		float xPos;
+		float zPos;
+
+		//get center of the building generation
+		XMFLOAT3 center = XMFLOAT3(rand() % 120 - 60, -150.0f, ship->GetPosition().z + 400.0f);
+
+		//Create the buildings
+		std::shared_ptr<Entity> building1 = std::make_shared<Entity>(buildingMesh, buildingMat);
+		xPos = 40.5f;
+		zPos = -4.5f;
+		building1->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
+			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		building1->SetTag("Building");
+		building1->UseRigidBody();
+		entities.emplace_back(building1);
+
+		std::shared_ptr<Entity> building2 = std::make_shared<Entity>(buildingMesh, buildingMat);
+		xPos = 39;
+		zPos = 36;
+		building2->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
+			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		building2->SetTag("Building");
+		building2->UseRigidBody();
+		entities.emplace_back(building2);
+
+		std::shared_ptr<Entity> building3 = std::make_shared<Entity>(buildingMesh, buildingMat);
+		xPos = -19.5f;
+		zPos = 72;
+		building3->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
+			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		building3->SetTag("Building");
+		building3->UseRigidBody();
+		entities.emplace_back(building3);
+
+		std::shared_ptr<Entity> building4 = std::make_shared<Entity>(buildingMesh, buildingMat);
+		xPos = -42;
+		zPos = -45;
+		building4->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
+			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		building4->SetTag("Building");
+		building4->UseRigidBody();
+		entities.emplace_back(building4);
+
+		std::shared_ptr<Entity> building5 = std::make_shared<Entity>(buildingMesh, buildingMat);
+		xPos = 0;
+		zPos = -70.5;
+		building5->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
+			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		building5->SetTag("Building");
+		building5->UseRigidBody();
+		entities.emplace_back(building5);
+
+		std::shared_ptr<Entity> boulder = std::make_shared<Entity>(boulderMesh, boulderMat);
+		boulder->SetPosition(XMFLOAT3(center.x, center.y, center.z - 32));
+		//boulder->SetRotation(boulderRotation);
+		boulder->SetScale(XMFLOAT3(11, 11, 11));
+		XMFLOAT4 rotationFloat;
+		XMVECTOR rotVec = XMQuaternionRotationRollPitchYaw(0, 0, XM_PIDIV2);
+		XMStoreFloat4(&rotationFloat, rotVec);
+		boulder->SetRotation(rotationFloat);
+		entities.emplace_back(boulder);
+	}
+
 	// handle bullet creation
  	if (GetAsyncKeyState(VK_SPACE) & 0x8000 && fired == false)
 	{
@@ -1492,6 +1588,20 @@ void Game::Update(float deltaTime, float totalTime)
 			XMFLOAT3 bulletPos = ship->GetPosition();
 			bulletPos.y += 0.5f;
 			newBullet->SetPosition(bulletPos);
+
+			// set bullet rotation to ship rotation - to match forwards ====
+			// get current & original ship rotations and match them
+			XMFLOAT4 storedShipRot = ship->GetRotation();
+			XMFLOAT4 storedShipOrig = ship->GetOriginalRotation();
+			XMVECTOR shipRotation = XMLoadFloat4(&storedShipRot);
+			XMVECTOR originalRotation = XMLoadFloat4(&storedShipOrig);
+			// create var to store new rotation in & store it
+			XMFLOAT4 bulletRotation;
+			XMStoreFloat4(
+				&bulletRotation,
+				XMQuaternionMultiply(XMQuaternionInverse(originalRotation), shipRotation)
+			);
+			newBullet->SetRotation(bulletRotation);
 			entities.emplace_back(newBullet);
 		}
 	}
@@ -1578,6 +1688,20 @@ void Game::Update(float deltaTime, float totalTime)
 			}
 
 			entities[i] = nullptr;
+		}
+	}
+
+	//delete entities behind player
+	for (int i = 0; i < entities.size(); i++)
+	{
+		if (entities[i] == NULL)
+		{
+			break;
+		}
+
+		if (entities[i]->GetPosition().z < ship->GetPosition().z - 100.0f)
+		{
+			entities[i]->Die();
 		}
 	}
 

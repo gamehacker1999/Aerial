@@ -27,8 +27,20 @@ bool Bullet::IsColliding(std::shared_ptr<Entity> other)
 void Bullet::Update(float deltaTime)
 {
 	isActive = true;
-	position.z += 40*deltaTime;
-	SetPosition(position);
+	
+	// == BULLET HEADS IN FORWARD DIRECTION ==
+	// get current position and forward into XMVECTORs
+	XMVECTOR tempPos = XMLoadFloat3(&position);
+	XMFLOAT3 tempFw = GetForward();
+	// increment position by forward vector
+	tempPos += 40 * deltaTime * XMLoadFloat3(&tempFw);
+	// store calculation result in var
+	XMFLOAT3 storedPos;
+	XMStoreFloat3(&storedPos, tempPos);
+	// set position as stored var
+	SetPosition(storedPos);
+
+
 	lifeTime += deltaTime;
 	isAlive = lifeTime < MAX_LIFETIME;
 	if (!isAlive)
