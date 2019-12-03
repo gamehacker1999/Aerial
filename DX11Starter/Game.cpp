@@ -592,7 +592,7 @@ void Game::CreateBasicGeometry()
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/building.png", 0, &buildingTextureSRV);
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingNormal.png", 0, &buildingNormalTextureSRV);
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingRoughness.png", 0, &buildingRoughnessTextureSRV);
-	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingMetalness.png", 0, &buildingMetalnessTextureSRV);
+	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/buildingMetal.png", 0, &buildingMetalnessTextureSRV);
 	CreateWICTextureFromFile(device, context, L"../../Assets/Textures/boulder.png", 0, &boulderTextureSRV);
 
 
