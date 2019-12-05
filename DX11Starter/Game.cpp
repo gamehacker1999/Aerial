@@ -522,7 +522,7 @@ void Game::Init()
 
 	bulletCounter = 0;
 	buildingTimer = rand() % 30 + 45;
-	buildingCounter = 0;
+	buildingCounter = buildingTimer;
 
 	shipGas = std::make_shared<Emitter>(
 		300, //max particles
@@ -1517,62 +1517,62 @@ void Game::Update(float deltaTime, float totalTime)
 		float zPos;
 
 		//get center of the building generation
-		XMFLOAT3 center = XMFLOAT3(rand() % 120 - 60, -50.0f, ship->GetPosition().z + 400.0f);
+		XMFLOAT3 center = XMFLOAT3(rand() % 120 - 60, -80.0f, ship->GetPosition().z + 400.0f);
 
 		//Create the buildings
 		std::shared_ptr<Entity> building1 = std::make_shared<Entity>(buildingMesh, buildingMat);
-		xPos = 40.5f;
-		zPos = -4.5f;
+		zPos = 40.5f;
+		xPos = -4.5f;
 		building1->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
-			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+			center.x, (rand() % 40 - 40) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
 		building1->SetTag("Building");
 		building1->UseRigidBody();
 		entities.emplace_back(building1);
 
 		std::shared_ptr<Entity> building2 = std::make_shared<Entity>(buildingMesh, buildingMat);
-		xPos = 39;
-		zPos = 36;
+		zPos = 39;
+		xPos = 36;
 		building2->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
-			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+			center.x, (rand() % 40 - 40) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
 		building2->SetTag("Building");
 		building2->UseRigidBody();
 		entities.emplace_back(building2);
 
 		std::shared_ptr<Entity> building3 = std::make_shared<Entity>(buildingMesh, buildingMat);
-		xPos = -19.5f;
-		zPos = 72;
+		zPos = -19.5f;
+		xPos = 72;
 		building3->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
-			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+			center.x, (rand() % 40 - 40) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
 		building3->SetTag("Building");
 		building3->UseRigidBody();
 		entities.emplace_back(building3);
 
 		std::shared_ptr<Entity> building4 = std::make_shared<Entity>(buildingMesh, buildingMat);
-		xPos = -42;
-		zPos = -45;
+		zPos = -42;
+		xPos = -45;
 		building4->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
-			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+			center.x, (rand() % 40 - 40) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
 		building4->SetTag("Building");
 		building4->UseRigidBody();
 		entities.emplace_back(building4);
 
 		std::shared_ptr<Entity> building5 = std::make_shared<Entity>(buildingMesh, buildingMat);
-		xPos = 0;
-		zPos = -70.5;
+		zPos = 0;
+		xPos = -70.5;
 		building5->SetPosition(XMFLOAT3((xPos * cos(rot * DirectX::XM_PIDIV2) - zPos * sin(rot * DirectX::XM_PIDIV2)) + 
-			center.x, (rand() % 40 - 20) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
+			center.x, (rand() % 40 - 40) + center.y, zPos * cos(rot * DirectX::XM_PIDIV2) + xPos * sin(rot * DirectX::XM_PIDIV2) + center.z));
 		building5->SetTag("Building");
 		building5->UseRigidBody();
 		entities.emplace_back(building5);
 
 		std::shared_ptr<Entity> boulder = std::make_shared<Entity>(boulderMesh, boulderMat);
-		boulder->SetPosition(XMFLOAT3(center.x, center.y, center.z - 32));
-		//boulder->SetRotation(boulderRotation);
-		boulder->SetScale(XMFLOAT3(11, 11, 11));
 		XMFLOAT4 rotationFloat;
-		XMVECTOR rotVec = XMQuaternionRotationRollPitchYaw(0, 0, XM_PI+XM_PIDIV2);
+		XMVECTOR rotVec = XMQuaternionRotationRollPitchYaw(3 * XM_PIDIV2, (rot+1) * XM_PIDIV2, 0);
 		XMStoreFloat4(&rotationFloat, rotVec);
 		boulder->SetRotation(rotationFloat);
+		boulder->SetPosition(XMFLOAT3(34 * cos(rot * DirectX::XM_PIDIV2) +
+			center.x, center.y, -34 * sin(rot * DirectX::XM_PIDIV2) + center.z));
+		boulder->SetScale(XMFLOAT3(11, 11, 11));
 		entities.emplace_back(boulder);
 	}
 
