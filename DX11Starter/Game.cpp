@@ -522,7 +522,7 @@ void Game::Init()
 
 	bulletCounter = 0;
 	buildingTimer = rand() % 30 + 45;
-	buildingCounter = buildingTimer;
+	buildingCounter = 0;
 
 	shipGas = std::make_shared<Emitter>(
 		300, //max particles
