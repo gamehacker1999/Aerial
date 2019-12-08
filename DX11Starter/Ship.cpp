@@ -4,6 +4,7 @@ Ship::Ship(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> material):Entit
 {
 	XMStoreFloat4(&originalRotation, XMQuaternionIdentity());
 	health = 5;
+	speed = 2; //default speed is 2
 	tag = "Player";
 }
 
@@ -11,10 +12,23 @@ Ship::~Ship()
 {
 }
 
+
+float Ship::GetSpeed()
+{
+	return speed;
+}
+
+
+void Ship::SetSpeed(float speed)
+{
+	this->speed = speed;
+}
+
+
 void Ship::Update(float deltaTime)
 {
 	//moving the ship forward
-	position.z += 6 * deltaTime;
+	position.z += 3 * 2 * deltaTime;
 	SetPosition(position);
 
 	//getting the mouse input
@@ -36,7 +50,7 @@ void Ship::GetInput(float deltaTime)
 	if (GetAsyncKeyState('W') & 0x8000)
 	{
 		XMVECTOR newRotationTemp = XMQuaternionRotationAxis(XMVectorSet(1, 0, 0, 0), 3.14159f / 6 * deltaTime);
-		position.y += 2 * deltaTime;
+		position.y += speed * deltaTime;
 		XMFLOAT4 newRot;
 		XMStoreFloat4(&newRot, newRotationTemp);
 
@@ -52,7 +66,7 @@ void Ship::GetInput(float deltaTime)
 	{
 		XMVECTOR newRotationTemp = XMQuaternionRotationAxis(XMVectorSet(1, 0, 0, 0), -3.14159f / 6 * deltaTime);
 		XMFLOAT4 newRot;
-		position.y -= 2 * deltaTime;
+		position.y -= speed * deltaTime;
 		XMStoreFloat4(&newRot, newRotationTemp);
 
 		auto curRot = this->rotation;
@@ -67,7 +81,7 @@ void Ship::GetInput(float deltaTime)
 	{
 		XMVECTOR newRotationTemp = XMQuaternionRotationAxis(XMVectorSet(0, 0, 1, 0), 3.14159f / 6 * deltaTime);
 		XMFLOAT4 newRot;
-		position.x += 2 * deltaTime;
+		position.x += speed * deltaTime;
 		XMStoreFloat4(&newRot, newRotationTemp);
 
 		auto curRot = this->rotation;
@@ -82,7 +96,7 @@ void Ship::GetInput(float deltaTime)
 	{
 		XMVECTOR newRotationTemp = XMQuaternionRotationAxis(XMVectorSet(0, 0, 1, 0), -3.14159f / 6 * deltaTime);
 		XMFLOAT4 newRot;
-		position.x -= 2 * deltaTime;
+		position.x -= speed * deltaTime;
 		XMStoreFloat4(&newRot, newRotationTemp);
 
 		auto curRot = this->rotation;

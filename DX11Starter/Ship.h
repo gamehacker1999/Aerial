@@ -8,6 +8,7 @@ class Ship :
 protected:
 	XMFLOAT4 originalRotation;
 	float health;
+	float speed;
 
 public:
 	Ship(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> material);
@@ -18,6 +19,9 @@ public:
 	void GetInput(float deltaTime) override;
 
 	float GetHealth();
+
+	float GetSpeed();
+	void SetSpeed(float speed);
 
 	bool IsColliding(std::shared_ptr<Entity> other) override;
 

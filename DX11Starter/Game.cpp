@@ -806,6 +806,11 @@ void Game::GenerateTerrain()
 void Game::InitializeEntities()
 {
 	ship = std::make_shared<Ship>(shipMesh, material);
+
+	// set ship scale to smaller
+	float shipScale = 0.5f;
+	ship->SetScale({ shipScale, shipScale, shipScale });
+
 	ship->UseRigidBody();
 	ship->SetTag("Player");
 	entities.emplace_back(ship);
@@ -815,6 +820,9 @@ void Game::InitializeEntities()
 	XMStoreFloat4(&retShipRotation, shipOrientation);
 	ship->SetRotation(retShipRotation);
 	ship->SetOriginalRotation(retShipRotation);
+
+	// set ship speed
+	ship->SetSpeed(5);
 
 	for (size_t i = 0; i < MAX_BULLETS; i++)
 	{
@@ -1627,14 +1635,14 @@ void Game::Update(float deltaTime, float totalTime)
 	auto shipForward = ship->GetForward();
 	XMFLOAT3 em1Pos;
 	XMStoreFloat3(&em1Pos, XMLoadFloat3(&shipPos) + XMLoadFloat3(&shipForward) * 3);
-	em1Pos.x -= 1.2f;
+	em1Pos.x -= 1.2f * ship->GetScale().x;
 	shipGas->SetAcceleration(shipForward);
 	shipGas->SetPosition(em1Pos);
 
 	shipPos = ship->GetPosition();
 	XMFLOAT3 em2Pos;
 	XMStoreFloat3(&em2Pos, XMLoadFloat3(&shipPos) + XMLoadFloat3(&shipForward) * 3);
-	em2Pos.x += 1.2f;
+	em2Pos.x += 1.2f * ship->GetScale().x;
 	shipGas2->SetAcceleration(shipForward);
 	shipGas2->SetPosition(em2Pos);
 
