@@ -7,7 +7,9 @@ struct Particle
 	float3 startVelocity;
 
 	float rotationEnd;
-	float3 padding;
+	float age;
+
+	float2 padding;
 };
 
 struct ParticleDrawData
@@ -34,16 +36,25 @@ void main( uint3 id : SV_DispatchThreadID )
 {
 	if (id.x >= maxParticles) return;
 
-
 	uint index = id.x;
 	Particle p = particlePool.Load(index);
 	float age = currentTime - p.spawnTime;
 
+	if (p.age == 0.0f)
+	{
+		return;
+	}
+
+	if (age >lifeTime)
+	{
+		p.age = 0;
+	}
+
 	particlePool[index] = p;
 
-	if (age >= lifeTime)
+	if (p.age = 0)
 	{
-		deadList.Append(index);
+		deadList.Append(id.x);
 	}
 
 	else

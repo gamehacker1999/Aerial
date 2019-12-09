@@ -7,7 +7,8 @@ struct Particle
 	float3 startVelocity;
 
 	float rotationEnd;
-	float3 padding;
+	float age;
+	float2 padding;
 };
 
 cbuffer externalData : register(b0)
@@ -78,13 +79,15 @@ void main( uint3 id : SV_DispatchThreadID )
 	float rotStartMin = rotRandomRange.x;
 	float rotStartMax = rotRandomRange.y;
 
+	p.age = 1.0f;
+
 	//choosing a random start rotation
 	p.rotationStart = randNum * (rotStartMin - rotStartMax) + rotStartMin;
 
 	//random start rotation
 	float rotEndMin = rotRandomRange.z;
 	float rotEndMax = rotRandomRange.w;
-
+	
 	//choosing a random start rotation
 	p.rotationEnd = randNum * (rotEndMin - rotEndMax) + rotEndMin;
 	p.padding = float3(0, 0, 0);

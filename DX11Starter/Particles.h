@@ -13,7 +13,8 @@ struct Particle
 	XMFLOAT3 startVelocity;
 
 	float rotationEnd;
-	XMFLOAT3 padding;
+	float age;
+	XMFLOAT2 padding;
 };
 
 struct ParticleSort

@@ -26,7 +26,9 @@ struct Particle
 	float3 startVelocity;
 
 	float rotationEnd;
-	float3 padding;
+	float age;
+
+	float2 padding;
 };
 
 struct ParticleDrawData

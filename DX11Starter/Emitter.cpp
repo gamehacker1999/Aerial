@@ -249,7 +249,7 @@ void Emitter::UpdateParticles(float deltaTime, float currentTime, ID3D11DeviceCo
 		emitCount = min(emitCount, 65535);
 
 		// Adjust time counter
-		timeSinceEmit -= fmod(timeSinceEmit, secondsPerParticle);
+		timeSinceEmit = fmod(timeSinceEmit, secondsPerParticle);
 
 		// Emit an appropriate amount of particles
 		emitCS->SetShader();
