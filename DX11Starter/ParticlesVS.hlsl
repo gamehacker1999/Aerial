@@ -29,6 +29,12 @@ struct Particle
 	float3 padding;
 };
 
+struct ParticleDrawData
+{
+	uint  index;
+	float distanceFromCam; //distance from camera for sorting the particles
+};
+
 struct VertexToPixel
 {
 	float4 position: SV_POSITION;
@@ -37,6 +43,8 @@ struct VertexToPixel
 };
 
 StructuredBuffer<Particle> ParticleData: register(t0);
+StructuredBuffer<ParticleDrawData> ParticleDraw: register(t1);
+
 
 VertexToPixel main(uint id: SV_VertexID)
 {
@@ -45,7 +53,8 @@ VertexToPixel main(uint id: SV_VertexID)
 	uint particleID = id / 4; //every group of 4 vertex is a particle
 	uint cornerID = id % 4;
 
-	Particle p = ParticleData.Load(particleID + startIndex);
+	ParticleDrawData drawID = ParticleDraw.Load(particleID);
+	Particle p = ParticleData.Load(drawID.index);
 
 	float t = currentTime - p.spawnTime;
 	float percent = t / lifetime; //percent to lerp with

@@ -16,6 +16,12 @@ struct Particle
 	XMFLOAT3 padding;
 };
 
+struct ParticleSort
+{
+	unsigned int index;
+	float distanceSq;
+};
+
 //single vertex of a particle
 //each particle needs four vertcies to make a quad
 struct ParticleVertex 

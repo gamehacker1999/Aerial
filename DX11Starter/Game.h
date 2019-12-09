@@ -202,6 +202,11 @@ private:
 	std::shared_ptr<Emitter> shipGas;
 	std::shared_ptr<Emitter> shipGas2;
 	std::vector<std::shared_ptr<Emitter>> emitterList;
+	SimpleComputeShader* deadListInitCS;
+	SimpleComputeShader* updateParticleCS;
+	SimpleComputeShader* emitParticleCS;
+	SimpleComputeShader* copyParticleCS;
+	
 
 	//textures
 	ID3D11ShaderResourceView* textureSRV;
@@ -268,6 +273,8 @@ private:
 	ID3D11ShaderResourceView* terrainNormalTexture3;
 	ID3D11ShaderResourceView* terrainBlendMap;
 	SimplePixelShader* terrainPS;
+
+	//post process stuff
 
 };
 

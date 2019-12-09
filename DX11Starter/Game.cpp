@@ -86,6 +86,10 @@ Game::Game(HINSTANCE hInstance)
 	sobelFilter = nullptr;
 	jacobianCS = nullptr;
 
+	updateParticleCS = nullptr;
+	emitParticleCS = nullptr;
+	copyParticleCS = nullptr;
+	emitParticleCS = nullptr;
 	prevMousePos = { 0,0 };	
 
 #if defined(DEBUG) || defined(_DEBUG)
@@ -192,6 +196,18 @@ Game::~Game()
 
 	if (waterVS)
 		delete waterVS;
+
+	if (emitParticleCS)
+		delete emitParticleCS;
+
+	if (updateParticleCS)
+		delete updateParticleCS;
+
+	if (copyParticleCS)
+		delete copyParticleCS;
+
+	if (deadListInitCS)
+		delete deadListInitCS;
 
 	delete h0CS;
 	delete htCS;
@@ -538,7 +554,8 @@ void Game::Init()
 		XMFLOAT3(0.1f, 0.1f, 0.1f), //position deviation range
 		XMFLOAT4(-2, 2, -2, 2), //rotation around z axis
 		XMFLOAT3(0.f, -1.f, 0.f), //acceleration
-		device, particleVS, particlePS, particleTexture);
+		device, particleVS, deadListInitCS, updateParticleCS, emitParticleCS, copyParticleCS,
+		particlePS, particleTexture);
 
 	emitterList.emplace_back(shipGas);
 
@@ -557,7 +574,8 @@ void Game::Init()
 		XMFLOAT3(0.1f, 0.1f, 0.1f), 
 		XMFLOAT4(-2, 2, -2, 2),
 		XMFLOAT3(0.f, -1.f, 0.f), 
-		device, particleVS, particlePS, particleTexture);
+		device, particleVS, deadListInitCS, updateParticleCS, emitParticleCS, copyParticleCS,
+		particlePS, particleTexture);
 
 	emitterList.emplace_back(shipGas2);
 
@@ -652,6 +670,18 @@ void Game::LoadShaders()
 
 	jacobianCS = new SimpleComputeShader(device, context);
 	jacobianCS->LoadShaderFile(L"JacobianCS.cso");
+
+	emitParticleCS = new SimpleComputeShader(device, context);
+	emitParticleCS->LoadShaderFile(L"EmitParticlesCS.cso");
+
+	deadListInitCS = new SimpleComputeShader(device, context);
+	deadListInitCS->LoadShaderFile(L"DeadListInitCS");
+
+	updateParticleCS = new SimpleComputeShader(device, context);
+	updateParticleCS->LoadShaderFile(L"UpdateParticlesCS.cso");
+
+	copyParticleCS = new SimpleComputeShader(device, context);
+	copyParticleCS->LoadShaderFile(L"CopyDrawCountParticlesCS.cso");
 
 }
 
@@ -1416,7 +1446,8 @@ void Game::CreateExplosion(XMFLOAT3 pos)
 		XMFLOAT3(0.0f, 0.0f, 0.0f), //position deviation range
 		XMFLOAT4(-2, 2, -2, 2), //rotation around z axis
 		XMFLOAT3(0.f, 0.f, 0.f), //acceleration
-		device, particleVS, particlePS, particleTexture);
+		device, particleVS, deadListInitCS, updateParticleCS, emitParticleCS, copyParticleCS,
+		particlePS, particleTexture);
 
 	explosion->SetTemporary(2.f);
 	emitterList.emplace_back(explosion);
@@ -1438,7 +1469,8 @@ void Game::CreateSmoke(XMFLOAT3 shipPos)
 		XMFLOAT3(0.2f, 0.2f, 0.2f), //position deviation range
 		XMFLOAT4(-2, 2, -2, 2), //rotation around z axis
 		XMFLOAT3(0.f, 0.f, 0.f), //acceleration
-		device, particleVS, particlePS, particleTexture);
+		device, particleVS, deadListInitCS, updateParticleCS, emitParticleCS, copyParticleCS,
+		particlePS, particleTexture);
 
 	emitterList.emplace_back(smoke);
 
@@ -1640,7 +1672,7 @@ void Game::Update(float deltaTime, float totalTime)
 
 	for (int i = 0; i < emitterList.size(); i++)
 	{
-		emitterList[i]->UpdateParticles(deltaTime, totalTime);
+		emitterList[i]->UpdateParticles(deltaTime, totalTime,context);
 		if (emitterList[i]->IsDead())
 		{
 			emitterList[i] = nullptr;

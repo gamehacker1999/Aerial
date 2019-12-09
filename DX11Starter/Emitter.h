@@ -4,10 +4,12 @@
 #include"SimpleShader.h"
 #include<memory>
 #include"Camera.h"
+#include<wrl\client.h>
 #include<random>
 #include<vector>
 
 #define MAX_PARTICLES 250
+using namespace Microsoft::WRL;
 class Emitter
 {
 public:
@@ -27,6 +29,10 @@ public:
 		XMFLOAT3 emitterAcceleration,
 		ID3D11Device* device,
 		SimpleVertexShader* vs,
+		SimpleComputeShader* deadListInitCS,
+		SimpleComputeShader* updateCS,
+		SimpleComputeShader* emitCS,
+		SimpleComputeShader* drawCopyCS,
 		SimplePixelShader* ps,
 		ID3D11ShaderResourceView* texture
 	);
@@ -36,7 +42,7 @@ public:
 	void SetPosition(XMFLOAT3 pos);
 	void SetAcceleration(XMFLOAT3 acel);
 
-	void UpdateParticles(float deltaTime, float currentTime);
+	void UpdateParticles(float deltaTime, float currentTime, ID3D11DeviceContext* context);
 	void Draw(ID3D11DeviceContext* context, XMFLOAT4X4 view, XMFLOAT4X4 projection,float currentTime);
 
 	void SetTemporary(float emitterLife);
@@ -84,9 +90,21 @@ private:
 	ID3D11ShaderResourceView* texture;
 	SimpleVertexShader* vs;
 	SimplePixelShader* ps;
+	SimpleComputeShader* deadListInitCS;
+	SimpleComputeShader* updateCS;
+	SimpleComputeShader* copyDrawCS;
+	SimpleComputeShader* emitCS;
 
 	ID3D11Buffer* particleBuffer;
 	ID3D11ShaderResourceView* particleData;
+	ComPtr<ID3D11UnorderedAccessView> particlePoolUAV;
+	ComPtr<ID3D11UnorderedAccessView> particleDeadUAV;
+	ComPtr <ID3D11UnorderedAccessView> particleDrawUAV;
+	ComPtr <ID3D11ShaderResourceView> particleDrawSRV;
+	ComPtr <ID3D11UnorderedAccessView> drawArgsUAV;
+	// Indirect draw buffer
+	ComPtr<ID3D11Buffer> drawArgsBuffer;
+	
 
 	// Update Methods
 	void UpdateSingleParticle(float dt, int index, float currentTime);

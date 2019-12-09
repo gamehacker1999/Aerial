@@ -1,18 +1,25 @@
 #include "Emitter.h"
 
-Emitter::Emitter(int maxParticles, int particlesPerSecond, 
-	float lifetime, float startSize, float endSize, 
-	XMFLOAT4 startColor, 
-	XMFLOAT4 endColor, 
-	XMFLOAT3 startVelocity, 
-	XMFLOAT3 velocityRandomRange, 
-	XMFLOAT3 emitterPosition, 
-	XMFLOAT3 positionRandomRange, 
-	XMFLOAT4 rotationRandomRanges, 
-	XMFLOAT3 emitterAcceleration, 
-	ID3D11Device* device, 
-	SimpleVertexShader* vs, 
-	SimplePixelShader* ps, 
+Emitter::Emitter(int maxParticles,
+	int particlesPerSecond,
+	float lifetime,
+	float startSize,
+	float endSize,
+	XMFLOAT4 startColor,
+	XMFLOAT4 endColor,
+	XMFLOAT3 startVelocity,
+	XMFLOAT3 velocityRandomRange,
+	XMFLOAT3 emitterPosition,
+	XMFLOAT3 positionRandomRange,
+	XMFLOAT4 rotationRandomRanges,
+	XMFLOAT3 emitterAcceleration,
+	ID3D11Device* device,
+	SimpleVertexShader* vs,
+	SimpleComputeShader* deadListInitCS,
+	SimpleComputeShader* updateCS,
+	SimpleComputeShader* emitCS,
+	SimpleComputeShader* drawCopyCS,
+	SimplePixelShader* ps,
 	ID3D11ShaderResourceView* texture)
 {
 	this->maxParticles = maxParticles; //max particles spewed
@@ -29,6 +36,10 @@ Emitter::Emitter(int maxParticles, int particlesPerSecond,
 	this->positionRandomRange = positionRandomRange; //range of pos
 	this->rotationRandomRanges = rotationRandomRanges; //random ranges of rotation
 	this->emitterAcceleration = emitterAcceleration; //acceleration of emmiter
+	this->deadListInitCS = deadListInitCS;
+	this->emitCS = emitCS;
+	this->copyDrawCS = drawCopyCS;
+	this->updateCS = updateCS;
 	this->ps = ps;
 	this->vs = vs;
 	this->texture = texture;
@@ -74,11 +85,11 @@ Emitter::Emitter(int maxParticles, int particlesPerSecond,
 
 	//create a structured buffer to hold the particles
 	D3D11_BUFFER_DESC particleBufferDesc = {};
-	particleBufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE; //bind it to srv
+	particleBufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE|D3D11_BIND_UNORDERED_ACCESS; //bind it to srv
 	particleBufferDesc.ByteWidth = maxParticles*sizeof(Particle);
-	particleBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	particleBufferDesc.CPUAccessFlags = 0;
 	particleBufferDesc.StructureByteStride = sizeof(Particle); //sizeof structure
-	particleBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	particleBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	particleBufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED; //this is a structured buffer
 	//creat the buffer
 	device->CreateBuffer(&particleBufferDesc, 0, &particleBuffer);
@@ -90,6 +101,102 @@ Emitter::Emitter(int maxParticles, int particlesPerSecond,
 	particleSRV.Buffer.NumElements = maxParticles;	
 
 	device->CreateShaderResourceView(particleBuffer, &particleSRV, &particleData);
+
+	//uav to represent the particles
+	D3D11_UNORDERED_ACCESS_VIEW_DESC poolUAVDesc = {};
+	poolUAVDesc.Format = DXGI_FORMAT_UNKNOWN; // Needed for RW structured buffers
+	poolUAVDesc.Buffer.FirstElement = 0;
+	poolUAVDesc.Buffer.Flags = 0;
+	poolUAVDesc.Buffer.NumElements = maxParticles;
+	poolUAVDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+	device->CreateUnorderedAccessView(particleBuffer, &poolUAVDesc, particlePoolUAV.GetAddressOf());
+
+	//dead list
+	ID3D11Buffer* deadListBuffer;
+	D3D11_BUFFER_DESC deadDesc = {};
+	deadDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+	deadDesc.ByteWidth = sizeof(unsigned int) * maxParticles;
+	deadDesc.CPUAccessFlags = 0;
+	deadDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	deadDesc.StructureByteStride = sizeof(unsigned int);
+	deadDesc.Usage = D3D11_USAGE_DEFAULT;
+	device->CreateBuffer(&deadDesc, 0, &deadListBuffer);
+
+	// UAV
+	D3D11_UNORDERED_ACCESS_VIEW_DESC deadUAVDesc = {};
+	deadUAVDesc.Format = DXGI_FORMAT_UNKNOWN; // Needed for RW structured buffers
+	deadUAVDesc.Buffer.FirstElement = 0;
+	deadUAVDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_APPEND; // Append/Consume
+	deadUAVDesc.Buffer.NumElements = maxParticles;
+	deadUAVDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+	device->CreateUnorderedAccessView(deadListBuffer, &deadUAVDesc, particleDeadUAV.GetAddressOf());
+
+	deadListBuffer->Release();
+
+	//draw list 
+			// Buffer
+	ID3D11Buffer* drawListBuffer;
+	D3D11_BUFFER_DESC drawDesc = {};
+	drawDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+	drawDesc.ByteWidth = sizeof(ParticleSort) * maxParticles;
+	drawDesc.CPUAccessFlags = 0;
+	drawDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	drawDesc.StructureByteStride = sizeof(ParticleSort);
+	drawDesc.Usage = D3D11_USAGE_DEFAULT;
+	device->CreateBuffer(&drawDesc, 0, &drawListBuffer);
+
+	// UAV
+	D3D11_UNORDERED_ACCESS_VIEW_DESC drawUAVDesc = {};
+	drawUAVDesc.Format = DXGI_FORMAT_UNKNOWN; // Needed for RW structured buffers
+	drawUAVDesc.Buffer.FirstElement = 0;
+	drawUAVDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_COUNTER; // IncrementCounter() in HLSL
+	drawUAVDesc.Buffer.NumElements = maxParticles;
+	drawUAVDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+	device->CreateUnorderedAccessView(drawListBuffer, &drawUAVDesc, &particleDrawUAV);
+
+	// SRV (for indexing in VS)
+	D3D11_SHADER_RESOURCE_VIEW_DESC drawSRVDesc = {};
+	drawSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+	drawSRVDesc.Buffer.FirstElement = 0;
+	drawSRVDesc.Buffer.NumElements = maxParticles;
+	// Don't actually set these!  They're union'd with above data, so 
+	// it will just overwrite correct values with incorrect values
+	//drawSRVDesc.Buffer.ElementOffset = 0;
+	//drawSRVDesc.Buffer.ElementWidth = sizeof(ParticleSort);
+	drawSRVDesc.Format = DXGI_FORMAT_UNKNOWN;
+	device->CreateShaderResourceView(drawListBuffer, &drawSRVDesc, &particleDrawSRV);
+
+	// Done
+	drawListBuffer->Release();
+
+	//draw args
+			// Buffer
+	D3D11_BUFFER_DESC argsDesc = {};
+	argsDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+	argsDesc.ByteWidth = sizeof(unsigned int) * 5; // Need 5 if using an index buffer!
+	argsDesc.CPUAccessFlags = 0;
+	argsDesc.MiscFlags = D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS;
+	argsDesc.StructureByteStride = 0;
+	argsDesc.Usage = D3D11_USAGE_DEFAULT;
+	device->CreateBuffer(&argsDesc, 0, drawArgsBuffer.GetAddressOf());
+
+	// UAV
+	D3D11_UNORDERED_ACCESS_VIEW_DESC argsUAVDesc = {};
+	argsUAVDesc.Format = DXGI_FORMAT_R32_UINT; // Actually UINT's in here!
+	argsUAVDesc.Buffer.FirstElement = 0;
+	argsUAVDesc.Buffer.Flags = 0;  // Nothing special
+	argsUAVDesc.Buffer.NumElements = 5; // Need 5 if using an index buffer
+	argsUAVDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+	device->CreateUnorderedAccessView(drawArgsBuffer.Get(), &argsUAVDesc, &drawArgsUAV);
+
+	// Must keep buffer ref for indirect draw!
+
+	//dead list initialize
+	deadListInitCS->SetShader();
+	deadListInitCS->SetInt("maxParticles", maxParticles);
+	deadListInitCS->SetUnorderedAccessView("particleDeadList", particleDeadUAV.Get());
+	deadListInitCS->CopyAllBufferData();
+	deadListInitCS->DispatchByThreads(maxParticles, 1, 1);
 
 	delete[] indices;
 }
@@ -117,7 +224,7 @@ void Emitter::SetAcceleration(XMFLOAT3 acel)
 	emitterAcceleration = acel;
 }
 
-void Emitter::UpdateParticles(float deltaTime, float currentTime)
+void Emitter::UpdateParticles(float deltaTime, float currentTime, ID3D11DeviceContext* context)
 {
 
 	if (isTemp)
@@ -128,8 +235,68 @@ void Emitter::UpdateParticles(float deltaTime, float currentTime)
 			isDead = true;
 		}
 	}
+	// Reset UAVs (potential issue with setting the following ones)
+	ID3D11UnorderedAccessView* none[8] = {};
+	context->CSSetUnorderedAccessViews(0, 8, none, 0);
+	timeSinceEmit += deltaTime;
 
-	if (livingParticleCount > 0)
+	while (timeSinceEmit >= secondsPerParticle)
+	{
+		// How many to emit?
+		int emitCount = (int)(timeSinceEmit / secondsPerParticle);
+
+		// Max to emit in a single batch is 65,535
+		emitCount = min(emitCount, 65535);
+
+		// Adjust time counter
+		timeSinceEmit -= fmod(timeSinceEmit, secondsPerParticle);
+
+		// Emit an appropriate amount of particles
+		emitCS->SetShader();
+		emitCS->SetFloat("totalTime", currentTime);
+		emitCS->SetInt("emitCount", emitCount);
+		emitCS->SetFloat3("emitterPos", emitterPosition);
+		emitCS->SetFloat3("startVelocity", startVelocity);
+		emitCS->SetFloat3("posRandomRange", positionRandomRange);
+		emitCS->SetFloat3("velRandomRange", velocityRandomRange);
+		emitCS->SetFloat4("rotRandomRange", rotationRandomRanges);
+		emitCS->SetUnorderedAccessView("ParticlePool", particlePoolUAV.Get());
+		emitCS->SetUnorderedAccessView("DeadList", particleDeadUAV.Get());
+		emitCS->CopyAllBufferData();
+		emitCS->DispatchByThreads(emitCount, 1, 1);
+	}
+
+	context->CSSetUnorderedAccessViews(0, 8, none, 0);
+
+	// Update
+	updateCS->SetShader();
+	updateCS->SetFloat("deltaTime", deltaTime);
+	updateCS->SetFloat("currentTime", currentTime);
+	updateCS->SetFloat("lifeTime", lifetime);
+	updateCS->SetFloat3("acceleration", emitterAcceleration);
+	updateCS->SetInt("maxParticles", maxParticles);
+	updateCS->SetUnorderedAccessView("particlePool", particlePoolUAV.Get());
+	updateCS->SetUnorderedAccessView("deadList", particleDeadUAV.Get());
+	updateCS->SetUnorderedAccessView("drawIndices", particleDrawUAV.Get(), 0); // Reset counter for update!
+
+	updateCS->CopyAllBufferData();
+	updateCS->DispatchByThreads(maxParticles, 1, 1);
+
+	context->CSSetUnorderedAccessViews(0, 8, none, 0);
+
+	// Get draw data
+	copyDrawCS->SetShader();
+	copyDrawCS->CopyAllBufferData();
+	copyDrawCS->SetUnorderedAccessView("drawArgs", drawArgsUAV.Get());
+	copyDrawCS->SetUnorderedAccessView("drawList", particleDrawUAV.Get()); // Don't reset counter!!!
+	copyDrawCS->DispatchByThreads(1, 1, 1);
+
+	// Reset here too
+	context->CSSetUnorderedAccessViews(0, 8, none, 0);
+
+	// Binding order issues with next stage, so just reset here
+
+	/*if (livingParticleCount > 0)
 	{
 		//looping through the circular buffer
 		if (firstAliveIndex < firstDeadIndex)
@@ -155,22 +322,17 @@ void Emitter::UpdateParticles(float deltaTime, float currentTime)
 				UpdateSingleParticle(deltaTime, i,currentTime);
 			}
 		}
-	}
+	}*/
 
-	timeSinceEmit += deltaTime;
 
-	while(timeSinceEmit >= secondsPerParticle)
-	{
-		SpawnParticle(currentTime);
-		timeSinceEmit -= secondsPerParticle;
-	}
+
 
 }
 
 void Emitter::Draw(ID3D11DeviceContext* context, XMFLOAT4X4 view, XMFLOAT4X4 projection, float currentTime)
 {
 	//mapping the data so that gpu cannot write to it
-	D3D11_MAPPED_SUBRESOURCE mapped = {};
+	/*D3D11_MAPPED_SUBRESOURCE mapped = {};
 
 	//mapping the vertex buffer so that cpu can write to it
 	context->Map(particleBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
@@ -179,14 +341,14 @@ void Emitter::Draw(ID3D11DeviceContext* context, XMFLOAT4X4 view, XMFLOAT4X4 pro
 	memcpy(mapped.pData, particles, sizeof(Particle) * maxParticles);
 
 	//unmapping the resource
-	context->Unmap(particleBuffer, 0);
+	context->Unmap(particleBuffer, 0);*/
 
 	//setting the up the buffer
 	UINT stride = 0;
 	UINT offset = 0;
 	ID3D11Buffer* nullBuffer=nullptr;
 	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-	context->IASetVertexBuffers(0, 1, &nullBuffer, &stride, &offset);
+	//context->IASetVertexBuffers(0, 1, &nullBuffer, &stride, &offset);
 
 	//setting the view and projection matrix
 	vs->SetMatrix4x4("view", view);
@@ -199,14 +361,21 @@ void Emitter::Draw(ID3D11DeviceContext* context, XMFLOAT4X4 view, XMFLOAT4X4 pro
 	vs->SetFloat("lifetime",lifetime);
 	vs->SetFloat("currentTime",currentTime);
 	vs->SetShader();
-
+	
 	context->VSSetShaderResources(0, 1, &particleData);
+	context->VSSetShaderResources(1, 1, particleDrawSRV.GetAddressOf());
+	vs->CopyAllBufferData();
+
 
 	ps->SetShaderResourceView("particle", texture);
 	ps->SetShader();
 	ps->CopyAllBufferData();
+	context->DrawIndexedInstancedIndirect(drawArgsBuffer.Get(), 0);
 
-	if (firstAliveIndex < firstDeadIndex)
+	ID3D11ShaderResourceView* none[16] = {};
+	context->VSSetShaderResources(0, 16, none);
+
+	/*if (firstAliveIndex < firstDeadIndex)
 	{
 		vs->SetInt("startIndex", firstAliveIndex);
 		vs->CopyAllBufferData();
@@ -224,7 +393,7 @@ void Emitter::Draw(ID3D11DeviceContext* context, XMFLOAT4X4 view, XMFLOAT4X4 pro
 		vs->SetInt("startIndex", firstAliveIndex);
 		vs->CopyAllBufferData();
 		context->DrawIndexed((maxParticles - firstAliveIndex) * 6, 0, 0);
-	}
+	}*/
 
 }
 
