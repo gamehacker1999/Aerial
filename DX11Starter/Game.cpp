@@ -125,7 +125,7 @@ Game::~Game()
 	if (samplerState)
 		samplerState->Release();
 
-	if (ppSampler)
+	if(ppSampler)
 		ppSampler->Release();
 
 	if (irradianceMapTexture)
@@ -1812,13 +1812,8 @@ void Game::Draw(float deltaTime, float totalTime)
 	const float color[4] = { 0.4f, 0.6f, 0.75f, 0.0f };
 
 	context->ClearRenderTargetView(backBufferRTV, color);
-	context->ClearRenderTargetView(ppRTV, color);
 	context->ClearRenderTargetView(waterReflectionRTV, color);
 	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL,1.0f,0);
-
-	// --- Post Processing! ---------------------
-	// Change the render target
-	context->OMSetRenderTargets(1, &ppRTV, depthStencilView);
 
 	//rendering shadow
 	RenderShadowMap();
@@ -1858,6 +1853,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	//  - Do this ONCE PER FRAME
 	//  - At the beginning of Draw (before drawing *anything*)
 	context->ClearRenderTargetView(backBufferRTV, color);
+	context->ClearRenderTargetView(ppRTV, color);
 	context->ClearDepthStencilView(
 		depthStencilView,
 		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
@@ -1867,7 +1863,9 @@ void Game::Draw(float deltaTime, float totalTime)
 	context->RSSetState(nullptr);
 	context->RSSetViewports(1, &viewport);
 
-	context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
+	// --- Post Processing! ---------------------
+	// Change the render target
+	context->OMSetRenderTargets(1, &ppRTV, depthStencilView);
 	
 	clip = XMFLOAT4(0, 0, 0, 0);
 	DrawSceneOpaque(clip);
@@ -1900,6 +1898,9 @@ void Game::Draw(float deltaTime, float totalTime)
 	ppPS->SetFloat("sampleStrength", 2.2f);
 	ppPS->SetFloat("sampleDistance", 1.0f);
 	ppPS->CopyAllBufferData();
+
+	// Draw exactly 3 vertices for our "full screen triangle"
+	context->Draw(3, 0);
 
 	ID3D11ShaderResourceView* nullSRV[16] = {};
 	context->PSSetShaderResources(0, 16, nullSRV);
