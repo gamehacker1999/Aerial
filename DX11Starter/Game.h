@@ -66,6 +66,7 @@ private:
 	SimpleVertexShader* ppVS;
 	SimplePixelShader* ppPS;
 	DirectX::XMFLOAT2 uvCoord;
+	ID3D11SamplerState* ppSampler;
 
 	// Wrappers for DirectX shaders to provide simplified functionality
 	SimpleVertexShader* vertexShader;

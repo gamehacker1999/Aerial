@@ -88,6 +88,8 @@ Game::Game(HINSTANCE hInstance)
 
 	prevMousePos = { 0,0 };	
 
+	ppSampler = 0;
+
 #if defined(DEBUG) || defined(_DEBUG)
 	// Do we want a console window?  Probably only in debug mode
 	CreateConsoleWindow(500, 120, 32, 120);
@@ -122,6 +124,9 @@ Game::~Game()
 
 	if (samplerState)
 		samplerState->Release();
+
+	if (ppSampler)
+		ppSampler->Release();
 
 	if (irradianceMapTexture)
 		irradianceMapTexture->Release();
@@ -523,6 +528,18 @@ void Game::Init()
 	waterSampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 	device->CreateSamplerState(&waterSampDesc, &waterSampler);
+
+	// Create a post-process sampler state
+	D3D11_SAMPLER_DESC ppSampDesc = {};
+	ppSampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	ppSampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	ppSampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	ppSampDesc.Filter = D3D11_FILTER_ANISOTROPIC;//D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	ppSampDesc.MaxAnisotropy = 16;
+	ppSampDesc.MinLOD = 0;
+	ppSampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+	device->CreateSamplerState(&ppSampDesc, &ppSampler);
 
 	ID3D11Texture2D* waterReflectionTexture2D=nullptr;
 
@@ -1874,7 +1891,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	ppVS->SetShader();
 
 	ppPS->SetShaderResourceView("Pixels", ppSRV);
-	ppPS->SetSamplerState("Sampler", samplerState);
+	ppPS->SetSamplerState("Sampler", ppSampler);
 	ppPS->SetShader();
 
 	ppPS->SetFloat("pixelWidth", 1.0f / width);
