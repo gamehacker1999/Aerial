@@ -40,19 +40,19 @@ void main( uint3 id : SV_DispatchThreadID )
 	Particle p = particlePool.Load(index);
 	float age = currentTime - p.spawnTime;
 
-	if (p.age == 0.0f)
+	if (p.age <= 0.0f)
 	{
 		return;
 	}
 
 	if (age >lifeTime)
 	{
-		p.age = 0;
+		p.age = -1.0;
 	}
 
 	particlePool[index] = p;
 
-	if (p.age = 0)
+	if (p.age <= 0)
 	{
 		deadList.Append(id.x);
 	}

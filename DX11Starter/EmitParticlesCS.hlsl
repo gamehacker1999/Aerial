@@ -90,7 +90,7 @@ void main( uint3 id : SV_DispatchThreadID )
 	
 	//choosing a random start rotation
 	p.rotationEnd = randNum * (rotEndMin - rotEndMax) + rotEndMin;
-	p.padding = float3(0, 0, 0);
+	p.padding = float2(0, 0);
 
 	ParticlePool[index] = p;
 

@@ -12,8 +12,8 @@ void main( uint3 DTid : SV_DispatchThreadID )
 {
 	drawArgs[0] = drawList.IncrementCounter() * 6;
 	drawArgs[1] = 1;
-	drawArgs[2] = 0;
-	drawArgs[3] = 0;
-	drawArgs[5] = 0;
+	drawArgs[2] = 1;
+	drawArgs[3] = 1;
+	drawArgs[4] = 0;
 
 }
