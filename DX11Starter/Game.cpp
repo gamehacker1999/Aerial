@@ -1879,8 +1879,12 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	DrawParticles(totalTime,clip);
 
-	//terrain->Draw(camera->GetViewMatrix(), camera->GetProjectionMatrix(),
-		//context, lights[0]);
+	/*terrain->Draw(camera->GetViewMatrix(), camera->GetProjectionMatrix(),
+		context, lights[0]);*/
+
+	// Reset states for next frame
+	context->RSSetState(0);
+	context->OMSetDepthStencilState(0, 0);
 
 	// --- Post processing -----------------------
 	context->OMSetRenderTargets(1, &backBufferRTV, 0);
@@ -1892,12 +1896,15 @@ void Game::Draw(float deltaTime, float totalTime)
 	ppPS->SetSamplerState("Sampler", ppSampler);
 	ppPS->SetShader();
 
-	ppPS->SetFloat("pixelWidth", 1.0f / width);
-	ppPS->SetFloat("pixelHeight", 1.0f / height);
 	ppPS->SetFloat2("uvCoord", uvCoord);
-	ppPS->SetFloat("sampleStrength", 2.2f);
+	ppPS->SetFloat("sampleStrength", 1.5f);
 	ppPS->SetFloat("sampleDistance", 1.0f);
 	ppPS->CopyAllBufferData();
+
+	// Turn OFF vertex and index buffers
+	ID3D11Buffer* nothing = 0;
+	context->IASetIndexBuffer(0, DXGI_FORMAT_R32_UINT, 0);
+	context->IASetVertexBuffers(0, 1, &nothing, &stride, &offset);
 
 	// Draw exactly 3 vertices for our "full screen triangle"
 	context->Draw(3, 0);

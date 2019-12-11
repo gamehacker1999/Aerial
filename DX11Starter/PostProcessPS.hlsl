@@ -1,8 +1,6 @@
 
 cbuffer Data : register(b0)
 {
-    float pixelWidth;
-    float pixelHeight;
     float2 uvCoord;
     float sampleStrength;
     float sampleDistance;
@@ -46,7 +44,7 @@ float4 main(VertexToPixel input) : SV_TARGET
     
     for (int i = 0; i < 10; i++)
     {
-        totalColor += Pixels.Sample(Sampler, input.uv + float2(direction.x * pixelWidth, direction.y * pixelHeight) * samples[i] * sampleDistance);
+        totalColor += Pixels.Sample(Sampler, input.uv + direction * samples[i] * sampleDistance);
     }
     totalColor *= 1.0 / 11.0;
     float t = distance * sampleStrength;
