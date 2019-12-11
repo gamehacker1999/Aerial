@@ -53,9 +53,9 @@ Terrain::Terrain(
 	std::vector<XMFLOAT3> triangleNormals;
 
 	int indexCounter = 0;
-	for (int z = 0; z < heightmapHeight - 1; z++)
+	for (unsigned int z = 0; z < heightmapHeight - 1; z++)
 	{
-		for (int x = 0; x < heightmapWidth - 1; x++)
+		for (unsigned int x = 0; x < heightmapWidth - 1; x++)
 		{
 			// Calc the vertex index
 			int vertIndex = z * heightmapWidth + x;
@@ -106,9 +106,9 @@ Terrain::Terrain(
 
 
 	// Calculate normals!
-	for (int z = 0; z < heightmapHeight; z++)
+	for (unsigned int z = 0; z < heightmapHeight; z++)
 	{
-		for (int x = 0; x < heightmapWidth; x++)
+		for (unsigned int x = 0; x < heightmapWidth; x++)
 		{
 			// Get the index of this vertex, and triangle-related indices
 			int index = z * heightmapWidth + x;
@@ -180,7 +180,7 @@ Terrain::Terrain(
 			}
 
 			// Average normal
-			normalTotal /= normalCount;
+			normalTotal /= (float)normalCount;
 			XMStoreFloat3(&verts[index].normal, normalTotal);
 		}
 	}
@@ -248,9 +248,9 @@ void Terrain::LoadHeightMap(std::string heightmap, unsigned int width, unsigned 
 	file.close();
 
 	// Create the initial mesh data
-	for (int z = 0; z < height; z++)
+	for (unsigned int z = 0; z < height; z++)
 	{
-		for (int x = 0; x < width; x++)
+		for (unsigned int x = 0; x < width; x++)
 		{
 			// This vert index
 			int index = z * width + x;

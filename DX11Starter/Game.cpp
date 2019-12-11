@@ -1600,7 +1600,7 @@ void Game::Update(float deltaTime, float totalTime)
 		float zPos;
 
 		//get center of the building generation
-		XMFLOAT3 center = XMFLOAT3(rand() % 120 - 60, -80.0f, ship->GetPosition().z + 400.0f);
+		XMFLOAT3 center = XMFLOAT3(rand() % 120 - 60.0f, -80.0f, ship->GetPosition().z + 400.0f);
 
 		//Create the buildings
 		std::shared_ptr<Entity> building1 = std::make_shared<Entity>(buildingMesh, buildingMat);
@@ -1797,7 +1797,7 @@ void Game::Update(float deltaTime, float totalTime)
 
 	XMStoreFloat4(&ssPos, clipSpace);
 
-	uvCoord = XMFLOAT2((ssPos.x / ssPos.w) * 0.5 + 0.5, (ssPos.y / ssPos.w) * -0.5 + 0.5);
+	uvCoord = XMFLOAT2((ssPos.x / ssPos.w) * 0.5f + 0.5f, (ssPos.y / ssPos.w) * -0.5f + 0.5f);
 
 	entities.erase(std::remove(entities.begin(), entities.end(), nullptr), entities.end());
 	emitterList.erase(std::remove(emitterList.begin(), emitterList.end(), nullptr), emitterList.end());

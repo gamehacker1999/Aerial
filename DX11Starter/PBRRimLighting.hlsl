@@ -253,7 +253,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 
 	float3 ambientIndirect = (kdIndirect * diffuseIndirect + specularIndirect * surfaceColor.rgb);
 
-	float3 color = (Lo*shadowDepth + ambientIndirect);
+	float3 color = (Lo + ambientIndirect);
 
 	float4 rimColor = float4(1.0f, 0.0f, 0.0f, 1.0f);
 	

@@ -25,7 +25,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 {
     float2 direction = uvCoord - input.uv;
     float distance = length(direction);
-    direction = direction * distance*3;
+    direction = direction * distance*2;
     float4 thisPixel = Pixels.Sample(Sampler, input.uv);
     float4 totalColor = thisPixel;
     

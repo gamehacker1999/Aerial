@@ -140,5 +140,5 @@ float4 main(VertexToPixel input) : SV_TARGET
 	float4 finalColor = ((CalculateLight(light, finalNormal, input) * shadowDepth) + light.ambientColor) * surfaceColor;
 
 	//return shadowDepth;
-	return ((CalculateLight(light,input.normal,input)*shadowDepth)+light.ambientColor)*surfaceColor;
+	return ((CalculateLight(light,input.normal,input))+light.ambientColor)*surfaceColor;
 }
