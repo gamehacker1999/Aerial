@@ -142,6 +142,18 @@ Game::~Game()
 	if (prefilteredSRV)
 		prefilteredSRV->Release();
 
+	if (ppRTV)
+		ppRTV->Release();
+	
+	if (ppSRV)
+		ppSRV->Release();
+
+	if (ppVS)
+		delete ppVS;
+	
+	if (ppPS)
+		delete ppPS;
+
 	if (prefileteredMapTexture)
 		prefileteredMapTexture->Release();
 
@@ -462,6 +474,45 @@ void Game::Init()
 
 	device->CreateSamplerState(&shadowSamplerDesc, &shadowSamplerState);
 
+
+	// Create post process resources -----------------------------------------
+	D3D11_TEXTURE2D_DESC textureDesc = {};
+	textureDesc.Width = width;
+	textureDesc.Height = height;
+	textureDesc.ArraySize = 1;
+	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	textureDesc.CPUAccessFlags = 0;
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.MipLevels = 1;
+	textureDesc.MiscFlags = 0;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	ID3D11Texture2D* ppTexture;
+	device->CreateTexture2D(&textureDesc, 0, &ppTexture);
+
+	// Create the Render Target View
+	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.Format = textureDesc.Format;
+	rtvDesc.Texture2D.MipSlice = 0;
+	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+
+	device->CreateRenderTargetView(ppTexture, &rtvDesc, &ppRTV);
+
+	// Create the Shader Resource View
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = textureDesc.Format;
+	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+
+	device->CreateShaderResourceView(ppTexture, &srvDesc, &ppSRV);
+
+	// We don't need the texture reference itself no mo'
+	ppTexture->Release();
+
+
 	//creating water sampler, srv and rtv
 	D3D11_SAMPLER_DESC waterSampDesc = {};
 	waterSampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -653,6 +704,12 @@ void Game::LoadShaders()
 	jacobianCS = new SimpleComputeShader(device, context);
 	jacobianCS->LoadShaderFile(L"JacobianCS.cso");
 
+	// Post process shaders
+	ppVS = new SimpleVertexShader(device, context);
+	ppVS->LoadShaderFile(L"PostProcessVS.cso");
+
+	ppPS = new SimplePixelShader(device, context);
+	ppPS->LoadShaderFile(L"PostProcessPS.cso");
 }
 
 // --------------------------------------------------------
@@ -1713,11 +1770,20 @@ void Game::Update(float deltaTime, float totalTime)
 		}
 	}
 
+	XMFLOAT4 shipFront = XMFLOAT4(ship->GetPosition().x, ship->GetPosition().y, ship->GetPosition().z + 20, 1.0f);
+
+	XMVECTOR clipSpace = XMVector4Transform(XMVector4Transform(XMLoadFloat4(&shipFront), XMMatrixTranspose(XMLoadFloat4x4(&camera->GetViewMatrix()))), XMMatrixTranspose(XMLoadFloat4x4(&camera->GetProjectionMatrix())));
+
+	XMFLOAT4 ssPos;
+
+	XMStoreFloat4(&ssPos, clipSpace);
+
+	uvCoord = XMFLOAT2(ssPos.x / ssPos.w * 0.5 + 0.5, ssPos.y / ssPos.w * -0.5 + 0.5);
+
 	entities.erase(std::remove(entities.begin(), entities.end(), nullptr), entities.end());
 	emitterList.erase(std::remove(emitterList.begin(), emitterList.end(), nullptr), emitterList.end());
 
-
-	lights[1].position.x = (float)sin(deltaTime)*10;
+	lights[1].position.x = (float)sin(deltaTime) * 10;
 }
 
 // --------------------------------------------------------
@@ -1729,8 +1795,14 @@ void Game::Draw(float deltaTime, float totalTime)
 	const float color[4] = { 0.4f, 0.6f, 0.75f, 0.0f };
 
 	context->ClearRenderTargetView(backBufferRTV, color);
+	context->ClearRenderTargetView(ppRTV, color);
 	context->ClearRenderTargetView(waterReflectionRTV, color);
 	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL,1.0f,0);
+
+	// --- Post Processing! ---------------------
+	// Change the render target
+	context->OMSetRenderTargets(1, &ppRTV, depthStencilView);
+
 	//rendering shadow
 	RenderShadowMap();
 
@@ -1794,6 +1866,23 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	//terrain->Draw(camera->GetViewMatrix(), camera->GetProjectionMatrix(),
 		//context, lights[0]);
+
+	// --- Post processing -----------------------
+	context->OMSetRenderTargets(1, &backBufferRTV, 0);
+
+	// Set up post process shaders
+	ppVS->SetShader();
+
+	ppPS->SetShaderResourceView("Pixels", ppSRV);
+	ppPS->SetSamplerState("Sampler", samplerState);
+	ppPS->SetShader();
+
+	ppPS->SetFloat("pixelWidth", 1.0f / width);
+	ppPS->SetFloat("pixelHeight", 1.0f / height);
+	ppPS->SetFloat2("uvCoord", uvCoord);
+	ppPS->SetFloat("sampleStrength", 2.2f);
+	ppPS->SetFloat("sampleDistance", 1.0f);
+	ppPS->CopyAllBufferData();
 
 	ID3D11ShaderResourceView* nullSRV[16] = {};
 	context->PSSetShaderResources(0, 16, nullSRV);

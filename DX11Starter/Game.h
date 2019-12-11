@@ -60,6 +60,12 @@ private:
 	void CreateExplosion(XMFLOAT3 pos);
 	void CreateSmoke(XMFLOAT3 shipPos);
 
+	// Post process stuff
+	ID3D11RenderTargetView* ppRTV;		// Allows us to render to a texture
+	ID3D11ShaderResourceView* ppSRV;	// Allows us to sample from the same texture
+	SimpleVertexShader* ppVS;
+	SimplePixelShader* ppPS;
+	DirectX::XMFLOAT2 uvCoord;
 
 	// Wrappers for DirectX shaders to provide simplified functionality
 	SimpleVertexShader* vertexShader;
