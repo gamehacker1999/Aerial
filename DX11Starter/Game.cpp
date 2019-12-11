@@ -595,8 +595,8 @@ void Game::Init()
 	shipGas = std::make_shared<Emitter>(
 		300, //max particles
 		50, //particles per second
-		0.7f, //lifetime
-		0.8f, //start size
+		0.4f, //lifetime
+		0.6f, //start size
 		0.03f, //end size
 		XMFLOAT4(1, 1.0f, 1.0f, 1.0f), //start color
 		XMFLOAT4(1, 0.1f, 0.1f, 0.6f), //end color
@@ -614,11 +614,11 @@ void Game::Init()
 	shipGas2 = std::make_shared<Emitter>(
 		300, 
 		50, 
-		0.7f, 
-		0.8f, 
+		0.4f, 
+		0.6f, 
 		0.03f, 
 		XMFLOAT4(1, 1.0f, 1.0f, 1.0f),
-		XMFLOAT4(1, 0.1f, 0.1f, 0.f), 
+		XMFLOAT4(1, 0.1f, 0.1f, 0.6f), 
 		XMFLOAT3(0, 0, -1.f), 
 		XMFLOAT3(0.2f, 0.2f, 0.2f),
 		ship->GetPosition(), 
@@ -902,6 +902,7 @@ void Game::InitializeEntities()
 	{
 		std::shared_ptr<Bullet> newBullet = std::make_shared<Bullet>(bulletMesh, material);
 		newBullet->UseRigidBody();
+		//newBullet->SetScale(XMFLOAT3(0.3f, 0.3f, 0.3f));
 		bullets.emplace_back(newBullet);
 	}
 
@@ -1669,6 +1670,7 @@ void Game::Update(float deltaTime, float totalTime)
 			newBullet->UseRigidBody();
 			XMFLOAT3 bulletPos = ship->GetPosition();
 			bulletPos.y += 0.5f;
+			newBullet->SetScale(XMFLOAT3(0.3f, 0.3f, 0.3f));
 			newBullet->SetPosition(bulletPos);
 
 			// set bullet rotation to ship rotation - to match forwards ====
@@ -1708,14 +1710,14 @@ void Game::Update(float deltaTime, float totalTime)
 	auto shipPos = ship->GetPosition();
 	auto shipForward = ship->GetForward();
 	XMFLOAT3 em1Pos;
-	XMStoreFloat3(&em1Pos, XMLoadFloat3(&shipPos) + XMLoadFloat3(&shipForward) * 3);
+	XMStoreFloat3(&em1Pos, XMLoadFloat3(&shipPos) + XMLoadFloat3(&shipForward));
 	em1Pos.x -= 1.2f * ship->GetScale().x;
 	shipGas->SetAcceleration(shipForward);
 	shipGas->SetPosition(em1Pos);
 
 	shipPos = ship->GetPosition();
 	XMFLOAT3 em2Pos;
-	XMStoreFloat3(&em2Pos, XMLoadFloat3(&shipPos) + XMLoadFloat3(&shipForward) * 3);
+	XMStoreFloat3(&em2Pos, XMLoadFloat3(&shipPos) + XMLoadFloat3(&shipForward));
 	em2Pos.x += 1.2f * ship->GetScale().x;
 	shipGas2->SetAcceleration(shipForward);
 	shipGas2->SetPosition(em2Pos);
@@ -1795,7 +1797,7 @@ void Game::Update(float deltaTime, float totalTime)
 
 	XMStoreFloat4(&ssPos, clipSpace);
 
-	uvCoord = XMFLOAT2(ssPos.x / ssPos.w * 0.5 + 0.5, ssPos.y / ssPos.w * -0.5 + 0.5);
+	uvCoord = XMFLOAT2((ssPos.x / ssPos.w) * 0.5 + 0.5, (ssPos.y / ssPos.w) * -0.5 + 0.5);
 
 	entities.erase(std::remove(entities.begin(), entities.end(), nullptr), entities.end());
 	emitterList.erase(std::remove(emitterList.begin(), emitterList.end(), nullptr), emitterList.end());
@@ -1898,7 +1900,7 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	ppPS->SetFloat2("uvCoord", uvCoord);
 	ppPS->SetFloat("sampleStrength", 1.5f);
-	ppPS->SetFloat("sampleDistance", 1.0f);
+	ppPS->SetFloat("sampleDistance", 0.5f);
 	ppPS->CopyAllBufferData();
 
 	// Turn OFF vertex and index buffers

@@ -28,7 +28,7 @@ void Ship::SetSpeed(float speed)
 void Ship::Update(float deltaTime)
 {
 	//moving the ship forward
-	position.z += 3 * 2 * deltaTime;
+	position.z += 20 * deltaTime;
 	SetPosition(position);
 
 	//getting the mouse input
